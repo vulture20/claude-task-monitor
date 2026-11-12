@@ -1,10 +1,11 @@
 using System.Globalization;
+using ClaudeTaskMonitor.Localization;
 
 namespace ClaudeTaskMonitor.ViewModels;
 
 internal static class Formatting
 {
-    private static readonly CultureInfo Culture = CultureInfo.CurrentCulture;
+    private static CultureInfo Culture => Loc.Instance.Culture;
 
     public static string Cpu(double percent) => percent.ToString("0.0", Culture) + " %";
 
@@ -19,11 +20,11 @@ internal static class Formatting
     /// <summary>Statustext aus sessions\&lt;pid&gt;.json für die Anzeige.</summary>
     public static string Status(string status, string? waitingFor) => status switch
     {
-        "busy" => "arbeitet",
-        "idle" => "bereit",
-        "waiting" => string.IsNullOrWhiteSpace(waitingFor) ? "wartet" : $"wartet: {waitingFor}",
-        "unknown" => "ohne Sitzungsdatei",
-        "ended" => "beendet",
+        "busy" => Loc.T("StatusBusy"),
+        "idle" => Loc.T("StatusIdle"),
+        "waiting" => string.IsNullOrWhiteSpace(waitingFor) ? Loc.T("StatusWaiting") : Loc.F("StatusWaitingFor", waitingFor),
+        "unknown" => Loc.T("StatusUnknown"),
+        "ended" => Loc.T("StatusEnded"),
         _ => status,
     };
 }

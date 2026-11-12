@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:ClaudeTaskMonitor.ViewModels"
+        xmlns:loc="clr-namespace:ClaudeTaskMonitor.Localization"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type=vm:MainViewModel}"
         Title="Claude Task Monitor"
@@ -33,8 +34,8 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <TextBlock Grid.Column="0" Text="{Binding Name}" TextTrimming="CharacterEllipsis" Foreground="{StaticResource TextSecondary}" />
-                    <TextBlock Grid.Column="1" Text="verwaist" Margin="4,0,0,0" FontSize="11" FontStyle="Italic" Foreground="{StaticResource StatusWaiting}"
-                               ToolTip="Elternprozess beendet; über die Merkliste oder --sponsor dieser Sitzung zugeordnet"
+                    <TextBlock Grid.Column="1" Text="{Binding [Orphan], Source={x:Static loc:Loc.Instance}}" Margin="4,0,0,0" FontSize="11" FontStyle="Italic" Foreground="{StaticResource StatusWaiting}"
+                               ToolTip="{Binding [OrphanToolTip], Source={x:Static loc:Loc.Instance}}"
                                Visibility="{Binding IsOrphan, Converter={StaticResource BoolToVisibility}}" />
                 </Grid>
                 <TextBlock Grid.Column="1" Text="{Binding Pid}" HorizontalAlignment="Right" Foreground="{StaticResource TextMuted}" />
@@ -121,7 +122,7 @@
                                 <ColumnDefinition Width="58" />
                                 <ColumnDefinition Width="62" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="Prozess" Foreground="{StaticResource TextMuted}" FontSize="11" />
+                            <TextBlock Grid.Column="0" Text="{Binding [ColumnProcess], Source={x:Static loc:Loc.Instance}}" Foreground="{StaticResource TextMuted}" FontSize="11" />
                             <TextBlock Grid.Column="1" Text="PID" Foreground="{StaticResource TextMuted}" FontSize="11" HorizontalAlignment="Right" />
                             <TextBlock Grid.Column="2" Text="CPU" Foreground="{StaticResource TextMuted}" FontSize="11" HorizontalAlignment="Right" />
                             <TextBlock Grid.Column="3" Text="RAM" Foreground="{StaticResource TextMuted}" FontSize="11" HorizontalAlignment="Right" />
@@ -148,17 +149,22 @@
     <Grid Background="Transparent" ContextMenuOpening="Root_ContextMenuOpening">
         <Grid.ContextMenu>
             <ContextMenu>
-                <MenuItem x:Name="OpenThreadItem" Header="Thread im Browser öffnen" Click="OpenThread_Click" />
-                <MenuItem x:Name="CopyThreadItem" Header="Thread-Link kopieren" Click="CopyThread_Click" />
+                <MenuItem x:Name="OpenThreadItem" Header="{Binding [MenuOpenThread], Source={x:Static loc:Loc.Instance}}" Click="OpenThread_Click" />
+                <MenuItem x:Name="CopyThreadItem" Header="{Binding [MenuCopyThread], Source={x:Static loc:Loc.Instance}}" Click="CopyThread_Click" />
                 <Separator x:Name="ThreadSeparator" />
-                <MenuItem Header="Immer im Vordergrund" IsCheckable="True" IsChecked="{Binding Topmost}" />
-                <MenuItem Header="Aktualisieren alle">
-                    <MenuItem Header="1 Sekunde" IsChecked="{Binding IsInterval1, Mode=OneWay}" Click="Interval_Click" Tag="1" />
-                    <MenuItem Header="2 Sekunden" IsChecked="{Binding IsInterval2, Mode=OneWay}" Click="Interval_Click" Tag="2" />
-                    <MenuItem Header="5 Sekunden" IsChecked="{Binding IsInterval5, Mode=OneWay}" Click="Interval_Click" Tag="5" />
+                <MenuItem Header="{Binding [MenuTopmost], Source={x:Static loc:Loc.Instance}}" IsCheckable="True" IsChecked="{Binding Topmost}" />
+                <MenuItem Header="{Binding [MenuInterval], Source={x:Static loc:Loc.Instance}}">
+                    <MenuItem Header="{Binding [MenuInterval1], Source={x:Static loc:Loc.Instance}}" IsChecked="{Binding IsInterval1, Mode=OneWay}" Click="Interval_Click" Tag="1" />
+                    <MenuItem Header="{Binding [MenuInterval2], Source={x:Static loc:Loc.Instance}}" IsChecked="{Binding IsInterval2, Mode=OneWay}" Click="Interval_Click" Tag="2" />
+                    <MenuItem Header="{Binding [MenuInterval5], Source={x:Static loc:Loc.Instance}}" IsChecked="{Binding IsInterval5, Mode=OneWay}" Click="Interval_Click" Tag="5" />
+                </MenuItem>
+                <MenuItem Header="{Binding [MenuLanguage], Source={x:Static loc:Loc.Instance}}">
+                    <MenuItem Header="{Binding [MenuLanguageAuto], Source={x:Static loc:Loc.Instance}}" IsChecked="{Binding IsLanguageAuto, Mode=OneWay}" Click="Language_Click" Tag="auto" />
+                    <MenuItem Header="Deutsch" IsChecked="{Binding IsLanguageGerman, Mode=OneWay}" Click="Language_Click" Tag="de" />
+                    <MenuItem Header="English" IsChecked="{Binding IsLanguageEnglish, Mode=OneWay}" Click="Language_Click" Tag="en" />
                 </MenuItem>
                 <Separator />
-                <MenuItem Header="Beenden" Click="Exit_Click" />
+                <MenuItem Header="{Binding [MenuExit], Source={x:Static loc:Loc.Instance}}" Click="Exit_Click" />
             </ContextMenu>
         </Grid.ContextMenu>
         <Grid.RowDefinitions>
@@ -170,7 +176,7 @@
             <ItemsControl ItemsSource="{Binding Sections}" ItemTemplate="{StaticResource ProjectSectionTemplate}" />
         </ScrollViewer>
 
-        <TextBlock Grid.Row="0" Text="Keine laufenden Claude-Sitzungen gefunden."
+        <TextBlock Grid.Row="0" Text="{Binding [Empty], Source={x:Static loc:Loc.Instance}}"
                    HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"
                    Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}" />
 
@@ -178,7 +184,7 @@
             <Grid>
                 <TextBlock Text="{Binding SummaryText}" Foreground="{StaticResource TextSecondary}" />
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <TextBlock Text="Gesamt " Foreground="{StaticResource TextMuted}" />
+                    <TextBlock Text="{Binding [Total], Source={x:Static loc:Loc.Instance}}" Foreground="{StaticResource TextMuted}" />
                     <TextBlock Text="{Binding TotalCpuText}" FontWeight="SemiBold" />
                 </StackPanel>
             </Grid>

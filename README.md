@@ -32,15 +32,25 @@ Unter [Releases](../../releases) liegt `ClaudeTaskMonitor.exe` als einzelne Date
   - Thread-Link kopieren
   - Immer im Vordergrund an/aus
   - Aktualisieren alle 1 / 2 / 5 Sekunden (Standard: 2 s)
+  - Sprache: Automatisch / Deutsch / English
   - Beenden
 - **Minimiert** tastet das Tool nicht ab und braucht keine CPU.
 - Die CPU-Last ist auf alle Kerne bezogen: 100 % heißt, alle Kerne sind voll ausgelastet.
 
-Position, Größe, „Immer im Vordergrund“ und das Intervall werden in `%APPDATA%\ClaudeTaskMonitor\settings.json` gespeichert.
+Position, Größe, „Immer im Vordergrund“, das Intervall und die Sprache werden in `%APPDATA%\ClaudeTaskMonitor\settings.json` gespeichert.
+
+### Sprache
+
+Die Oberfläche gibt es auf Deutsch und Englisch. Standardmäßig richtet sie sich nach der Windows-Anzeigesprache: Deutsch, wenn diese Deutsch ist (z. B. de-DE, de-AT, de-CH), sonst Englisch. Zahlen- und Datumsformat folgen der angezeigten Sprache.
+
+- **Kontextmenü → Sprache** stellt sofort um, ohne Neustart. Die Wahl wird gespeichert.
+- **`--lang de`**, **`--lang en`** oder **`--lang auto`** (auch `--lang=en`) legt die Sprache für diesen Start fest und hat Vorrang vor der gespeicherten Wahl.
+
+*English:* The UI is available in German and English. By default it follows the Windows display language (German if that is German, English otherwise). Switch via right-click → *Language*, or start with `--lang en` / `--lang de`.
 
 ### Demo-Modus
 
-`ClaudeTaskMonitor.exe --demo` zeigt erfundene Sitzungen, Projekte und Prozesse statt der echten. Das Tool liest dann weder Prozesse noch Dateien von Claude und speichert keine Einstellungen. Gedacht ist das für Screenshots und Vorführungen, ohne eigene Projektnamen, Pfade oder Thread-IDs preiszugeben.
+`ClaudeTaskMonitor.exe --demo` zeigt erfundene Sitzungen, Projekte und Prozesse statt der echten. Das Tool liest dann weder Prozesse noch Dateien von Claude und speichert keine Einstellungen. Gedacht ist das für Screenshots und Vorführungen, ohne eigene Projektnamen, Pfade oder Thread-IDs preiszugeben. Mit `--demo --lang en` erscheinen die Beispieldaten auf Englisch.
 
 ## Funktionsweise
 
@@ -105,6 +115,7 @@ Ein Tag `v*` (z. B. `v0.4.0`) startet den Workflow `.github/workflows/release.ym
 | `src/ClaudeTaskMonitor/Models` | Datentypen (Sitzungsdatei, Prozess, Sitzungsgruppe, Metadaten) |
 | `src/ClaudeTaskMonitor/Services` | `ProcessSnapshot` (Prozessliste), `SessionRegistry` (Sitzungsdateien), `ProcessScanner` (Erkennung, Baum, CPU-Last, Waisen), `SessionMetadataResolver` (Titel, Projekt, Thread), `MonitorService` (ein Durchlauf), `DemoSessionSource` (Beispieldaten für `--demo`), `AppSettings` (Einstellungen) |
 | `src/ClaudeTaskMonitor/ViewModels` | MVVM ohne externe Pakete |
+| `src/ClaudeTaskMonitor/Localization` | `Loc`: alle Oberflächentexte auf Deutsch und Englisch, Sprachwahl |
 
 ## Lizenz
 

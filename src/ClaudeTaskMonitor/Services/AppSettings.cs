@@ -19,6 +19,9 @@ public sealed class AppSettings
     public bool Topmost { get; set; } = true;
     public int IntervalSeconds { get; set; } = DefaultInterval;
 
+    /// <summary>Oberflächensprache: "auto" (Windows-Anzeigesprache), "de" oder "en".</summary>
+    public string Language { get; set; } = "auto";
+
     /// <summary>false im Demo-Modus: Änderungen bleiben im Speicher, die Datei wird nicht angefasst.</summary>
     [JsonIgnore]
     public bool Persist { get; set; } = true;

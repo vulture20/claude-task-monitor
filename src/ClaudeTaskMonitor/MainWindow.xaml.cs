@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
+using ClaudeTaskMonitor.Localization;
 using ClaudeTaskMonitor.Native;
 using ClaudeTaskMonitor.Services;
 using ClaudeTaskMonitor.ViewModels;
@@ -21,10 +22,16 @@ public partial class MainWindow : Window
 
     public MainWindow()
     {
-        InitializeComponent();
+        var args = Environment.GetCommandLineArgs().Skip(1).ToArray();
         // --demo: feste Beispieldaten statt echter Prozesse, z. B. für Screenshots. Einstellungen werden nicht gespeichert.
-        var demo = Environment.GetCommandLineArgs().Skip(1).Any(a => string.Equals(a, "--demo", StringComparison.OrdinalIgnoreCase));
+        var demo = args.Any(a => string.Equals(a, "--demo", StringComparison.OrdinalIgnoreCase));
         _settings = demo ? new AppSettings { Persist = false, Width = 420, Height = 640 } : AppSettings.Load();
+
+        // Sprache: --lang hat für diesen Start Vorrang vor der gespeicherten Wahl, die sonst gilt (Standard: automatisch).
+        var language = ParseLanguageArgument(args) ?? Loc.Parse(_settings.Language) ?? UiLanguage.Auto;
+        Loc.Instance.SetLanguage(language);
+
+        InitializeComponent();
         ApplyBounds(_settings);
 
         ISessionSource source = demo ? new DemoSessionSource() : MonitorService.CreateDefault();
@@ -158,6 +165,27 @@ public partial class MainWindow : Window
     {
         if (sender is MenuItem { Tag: string tag } && int.TryParse(tag, out var seconds))
             _viewModel.IntervalSeconds = seconds;
+    }
+
+    private void Language_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem { Tag: string tag } && Loc.Parse(tag) is { } language)
+            _viewModel.Language = language;
+    }
+
+    /// <summary>Liest <c>--lang de|en|auto</c> bzw. <c>--lang=…</c>; unbekannte Werte werden ignoriert.</summary>
+    private static UiLanguage? ParseLanguageArgument(string[] args)
+    {
+        for (var i = 0; i < args.Length; i++)
+        {
+            var arg = args[i];
+            if (arg.StartsWith("--lang=", StringComparison.OrdinalIgnoreCase))
+                return Loc.Parse(arg["--lang=".Length..]);
+            if (string.Equals(arg, "--lang", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
+                return Loc.Parse(args[i + 1]);
+        }
+
+        return null;
     }
 
     private void Exit_Click(object sender, RoutedEventArgs e) => Close();
