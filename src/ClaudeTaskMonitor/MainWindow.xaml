@@ -1,0 +1,142 @@
+﻿<Window x:Class="ClaudeTaskMonitor.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:ClaudeTaskMonitor.ViewModels"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance Type=vm:MainViewModel}"
+        Title="Claude Task Monitor"
+        Width="420" Height="500" MinWidth="300" MinHeight="180"
+        Topmost="True"
+        WindowStartupLocation="Manual" Left="40" Top="40"
+        Background="{StaticResource WindowBackground}"
+        Foreground="{StaticResource TextPrimary}"
+        FontFamily="Segoe UI" FontSize="12"
+        UseLayoutRounding="True" TextOptions.TextFormattingMode="Display">
+
+    <Window.Resources>
+        <!-- Eine Prozesszeile innerhalb einer Sitzung -->
+        <DataTemplate x:Key="ProcessRowTemplate" DataType="{x:Type vm:ProcessRowViewModel}">
+            <Grid Margin="0,1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="56" />
+                    <ColumnDefinition Width="58" />
+                    <ColumnDefinition Width="62" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Margin="{Binding Indent}" Text="{Binding Name}" TextTrimming="CharacterEllipsis"
+                           Foreground="{StaticResource TextSecondary}" />
+                <TextBlock Grid.Column="1" Text="{Binding Pid}" HorizontalAlignment="Right" Foreground="{StaticResource TextMuted}" />
+                <TextBlock Grid.Column="2" Text="{Binding CpuText}" HorizontalAlignment="Right" />
+                <TextBlock Grid.Column="3" Text="{Binding MemoryText}" HorizontalAlignment="Right" Foreground="{StaticResource TextSecondary}" />
+            </Grid>
+        </DataTemplate>
+
+        <!-- Eine Sitzung (Wurzelprozess samt Nachfahren) -->
+        <DataTemplate x:Key="SessionGroupTemplate" DataType="{x:Type vm:SessionGroupViewModel}">
+            <Border Margin="8,0,8,6" Background="{StaticResource CardBackground}" BorderBrush="{StaticResource CardBorder}"
+                    BorderThickness="1" CornerRadius="5">
+                <StackPanel>
+                    <ToggleButton Style="{StaticResource GroupHeaderToggle}" IsChecked="{Binding IsExpanded}" ToolTip="{Binding ToolTip}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="16" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Column="0" VerticalAlignment="Top" Margin="0,1,0,0" Foreground="{StaticResource TextMuted}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="▸" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsExpanded}" Value="True">
+                                                <Setter Property="Text" Value="▾" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+
+                            <StackPanel Grid.Column="1" Margin="0,0,8,0">
+                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                    <Ellipse Width="7" Height="7" Margin="0,0,5,0" VerticalAlignment="Center">
+                                        <Ellipse.Style>
+                                            <Style TargetType="Ellipse">
+                                                <Setter Property="Fill" Value="{StaticResource StatusUnknown}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Status}" Value="busy">
+                                                        <Setter Property="Fill" Value="{StaticResource StatusBusy}" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding Status}" Value="waiting">
+                                                        <Setter Property="Fill" Value="{StaticResource StatusWaiting}" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding Status}" Value="idle">
+                                                        <Setter Property="Fill" Value="{StaticResource StatusIdle}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Ellipse.Style>
+                                    </Ellipse>
+                                    <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource TextSecondary}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text=" · " Foreground="{StaticResource TextMuted}" />
+                                    <TextBlock Text="{Binding ProcessCountText}" Foreground="{StaticResource TextMuted}" />
+                                </StackPanel>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding CpuText}" FontSize="14" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                                <TextBlock Text="{Binding MemoryText}" Foreground="{StaticResource TextSecondary}" HorizontalAlignment="Right" />
+                            </StackPanel>
+                        </Grid>
+                    </ToggleButton>
+
+                    <ProgressBar Style="{StaticResource CpuBar}" Value="{Binding CpuPercent, Mode=OneWay}" Margin="8,0,8,4" />
+
+                    <StackPanel Margin="12,2,10,8" Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisibility}}">
+                        <Grid Margin="0,0,0,3">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="56" />
+                                <ColumnDefinition Width="58" />
+                                <ColumnDefinition Width="62" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="Prozess" Foreground="{StaticResource TextMuted}" FontSize="11" />
+                            <TextBlock Grid.Column="1" Text="PID" Foreground="{StaticResource TextMuted}" FontSize="11" HorizontalAlignment="Right" />
+                            <TextBlock Grid.Column="2" Text="CPU" Foreground="{StaticResource TextMuted}" FontSize="11" HorizontalAlignment="Right" />
+                            <TextBlock Grid.Column="3" Text="RAM" Foreground="{StaticResource TextMuted}" FontSize="11" HorizontalAlignment="Right" />
+                        </Grid>
+                        <ItemsControl ItemsSource="{Binding Processes}" ItemTemplate="{StaticResource ProcessRowTemplate}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,8,0,2">
+            <ItemsControl ItemsSource="{Binding Groups}" ItemTemplate="{StaticResource SessionGroupTemplate}" />
+        </ScrollViewer>
+
+        <TextBlock Grid.Row="0" Text="Keine laufenden Claude-Sitzungen gefunden."
+                   HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"
+                   Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}" />
+
+        <Border Grid.Row="1" BorderBrush="{StaticResource CardBorder}" BorderThickness="0,1,0,0" Padding="12,6">
+            <Grid>
+                <TextBlock Text="{Binding SummaryText}" Foreground="{StaticResource TextSecondary}" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <TextBlock Text="Gesamt " Foreground="{StaticResource TextMuted}" />
+                    <TextBlock Text="{Binding TotalCpuText}" FontWeight="SemiBold" />
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
