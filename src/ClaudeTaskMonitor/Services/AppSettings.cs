@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace ClaudeTaskMonitor.Services;
 
@@ -17,6 +18,10 @@ public sealed class AppSettings
     public double? Height { get; set; }
     public bool Topmost { get; set; } = true;
     public int IntervalSeconds { get; set; } = DefaultInterval;
+
+    /// <summary>false im Demo-Modus: Änderungen bleiben im Speicher, die Datei wird nicht angefasst.</summary>
+    [JsonIgnore]
+    public bool Persist { get; set; } = true;
 
     public static string FilePath =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ClaudeTaskMonitor", "settings.json");
@@ -47,6 +52,8 @@ public sealed class AppSettings
     /// <summary>Speichert atomar (erst Temp-Datei, dann ersetzen). Fehler werden still ignoriert.</summary>
     public void Save()
     {
+        if (!Persist)
+            return;
         try
         {
             var path = FilePath;

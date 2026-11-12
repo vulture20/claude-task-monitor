@@ -7,7 +7,7 @@ namespace ClaudeTaskMonitor.ViewModels;
 
 public sealed class MainViewModel : ObservableObject, IDisposable
 {
-    private readonly MonitorService _monitor;
+    private readonly ISessionSource _monitor;
     private readonly AppSettings _settings;
     private readonly DispatcherTimer _timer;
     private bool _scanning;
@@ -16,10 +16,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private string _summaryText = "Suche Claude-Prozesse …";
     private string _totalCpuText = string.Empty;
     private bool _isEmpty;
+    private string? _expandKey;
 
-    public MainViewModel(MonitorService monitor, AppSettings settings)
+    /// <param name="expandKey">Sitzung, deren Karte nach dem ersten Durchlauf aufgeklappt wird (Demo-Modus).</param>
+    public MainViewModel(ISessionSource monitor, AppSettings settings, string? expandKey = null)
     {
         _monitor = monitor;
+        _expandKey = expandKey;
         _settings = settings;
         _timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromSeconds(settings.IntervalSeconds) };
         _timer.Tick += async (_, _) => await RefreshAsync();
@@ -150,6 +153,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 return vm;
             },
             (vm, s) => vm.Update(s.Title, s.Groups));
+
+        if (_expandKey is not null && Sections.SelectMany(s => s.Sessions).FirstOrDefault(s => s.Key == _expandKey) is { } expand)
+        {
+            expand.IsExpanded = true;
+            _expandKey = null;
+        }
 
         var processCount = groups.Sum(g => g.Processes.Count);
         var totalCpu = Math.Min(100, groups.Sum(g => g.TotalCpuPercent));
