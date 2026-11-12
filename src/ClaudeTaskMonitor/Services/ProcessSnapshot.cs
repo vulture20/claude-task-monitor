@@ -73,4 +73,36 @@ internal static class ProcessSnapshot
             NativeMethods.CloseHandle(handle);
         }
     }
+
+    /// <summary>Kommandozeile eines Prozesses oder null (Zugriff verweigert, beendet).</summary>
+    public static string? QueryCommandLine(int pid)
+    {
+        if (pid <= 4)
+            return null;
+
+        var handle = NativeMethods.OpenProcess(NativeMethods.PROCESS_QUERY_LIMITED_INFORMATION, false, (uint)pid);
+        if (handle == IntPtr.Zero)
+            return null;
+
+        var buffer = IntPtr.Zero;
+        try
+        {
+            NativeMethods.NtQueryInformationProcess(handle, NativeMethods.ProcessCommandLineInformation, IntPtr.Zero, 0, out var needed);
+            if (needed <= 0 || needed > 1 << 20)
+                return null;
+
+            buffer = Marshal.AllocHGlobal(needed);
+            if (NativeMethods.NtQueryInformationProcess(handle, NativeMethods.ProcessCommandLineInformation, buffer, needed, out _) != 0)
+                return null;
+
+            var text = Marshal.PtrToStructure<NativeMethods.UNICODE_STRING>(buffer);
+            return text.Buffer == IntPtr.Zero ? null : Marshal.PtrToStringUni(text.Buffer, text.Length / 2);
+        }
+        finally
+        {
+            if (buffer != IntPtr.Zero)
+                Marshal.FreeHGlobal(buffer);
+            NativeMethods.CloseHandle(handle);
+        }
+    }
 }

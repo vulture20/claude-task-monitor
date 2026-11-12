@@ -23,6 +23,7 @@ internal static class Formatting
         "idle" => "bereit",
         "waiting" => string.IsNullOrWhiteSpace(waitingFor) ? "wartet" : $"wartet: {waitingFor}",
         "unknown" => "ohne Sitzungsdatei",
+        "ended" => "beendet",
         _ => status,
     };
 }

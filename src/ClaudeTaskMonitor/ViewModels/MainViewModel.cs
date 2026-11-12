@@ -9,21 +9,22 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 {
     private static readonly TimeSpan Interval = TimeSpan.FromSeconds(1);
 
-    private readonly ProcessScanner _scanner;
+    private readonly MonitorService _monitor;
     private readonly DispatcherTimer _timer;
     private bool _scanning;
     private string _summaryText = "Suche Claude-Prozesse …";
     private string _totalCpuText = string.Empty;
     private bool _isEmpty;
 
-    public MainViewModel(ProcessScanner scanner)
+    public MainViewModel(MonitorService monitor)
     {
-        _scanner = scanner;
+        _monitor = monitor;
         _timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = Interval };
         _timer.Tick += async (_, _) => await RefreshAsync();
     }
 
-    public ObservableCollection<SessionGroupViewModel> Groups { get; } = new();
+    /// <summary>Sitzungen nach Projekt gruppiert; „Ohne Projekt“ steht zuletzt.</summary>
+    public ObservableCollection<ProjectSectionViewModel> Sections { get; } = new();
 
     public string SummaryText { get => _summaryText; private set => SetProperty(ref _summaryText, value); }
     public string TotalCpuText { get => _totalCpuText; private set => SetProperty(ref _totalCpuText, value); }
@@ -47,7 +48,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             IReadOnlyList<SessionGroup> groups;
             try
             {
-                groups = await Task.Run(_scanner.Scan);
+                groups = await Task.Run(_monitor.Scan);
             }
             catch (Exception)
             {
@@ -65,13 +66,25 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private void Apply(IReadOnlyList<SessionGroup> groups)
     {
+        var sections = groups
+            .GroupBy(g => g.Metadata.ProjectId ?? ProjectSectionViewModel.NoProjectKey)
+            .Select(s => (Key: s.Key, Title: SectionTitle(s.Key, s), Groups: (IReadOnlyList<SessionGroup>)s.ToList()))
+            .OrderBy(s => s.Key == ProjectSectionViewModel.NoProjectKey)
+            .ThenBy(s => s.Title, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+
         CollectionSync.Sync(
-            Groups,
-            groups,
-            g => g.Key,
+            Sections,
+            sections,
+            s => s.Key,
             vm => vm.Key,
-            g => new SessionGroupViewModel(g),
-            (vm, g) => vm.Update(g));
+            s =>
+            {
+                var vm = new ProjectSectionViewModel(s.Key);
+                vm.Update(s.Title, s.Groups);
+                return vm;
+            },
+            (vm, s) => vm.Update(s.Title, s.Groups));
 
         var processCount = groups.Sum(g => g.Processes.Count);
         var totalCpu = Math.Min(100, groups.Sum(g => g.TotalCpuPercent));
@@ -80,5 +93,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         SummaryText = groups.Count == 1
             ? $"1 Sitzung · {processCount} Prozesse"
             : $"{groups.Count} Sitzungen · {processCount} Prozesse";
+    }
+
+    private static string SectionTitle(string key, IEnumerable<SessionGroup> groups)
+    {
+        if (key == ProjectSectionViewModel.NoProjectKey)
+            return "Ohne Projekt";
+        var name = groups.Select(g => g.Metadata.ProjectName).FirstOrDefault(n => !string.IsNullOrWhiteSpace(n));
+        return name ?? "Projekt " + key;
     }
 }

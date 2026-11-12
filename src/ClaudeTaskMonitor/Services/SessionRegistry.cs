@@ -23,8 +23,7 @@ public sealed class SessionRegistry
 
     public SessionRegistry(string directory) => _directory = directory;
 
-    public static string DefaultDirectory =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".claude", "sessions");
+    public static string DefaultDirectory => ClaudePaths.SessionsDirectory;
 
     public IReadOnlyList<SessionFile> Load()
     {
