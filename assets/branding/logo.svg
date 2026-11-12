@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <title>Claude Task Monitor</title>
+  <!-- Farben aus App.xaml: WindowBackground, CardBorder/BarTrack, Accent, StatusBusy/Waiting/Idle -->
+  <rect x="8" y="8" width="240" height="240" rx="52" fill="#1B1D21" stroke="#30343A" stroke-width="6"/>
+  <g>
+    <circle cx="66" cy="84" r="12" fill="#4CC38A"/>
+    <rect x="98" y="72" width="104" height="24" rx="12" fill="#30343A"/>
+    <rect x="98" y="72" width="92" height="24" rx="12" fill="#D97757"/>
+  </g>
+  <g>
+    <circle cx="66" cy="128" r="12" fill="#E5A54B"/>
+    <rect x="98" y="116" width="104" height="24" rx="12" fill="#30343A"/>
+    <rect x="98" y="116" width="60" height="24" rx="12" fill="#D97757"/>
+  </g>
+  <g>
+    <circle cx="66" cy="172" r="12" fill="#8A8F98"/>
+    <rect x="98" y="160" width="104" height="24" rx="12" fill="#30343A"/>
+    <rect x="98" y="160" width="30" height="24" rx="12" fill="#D97757"/>
+  </g>
+</svg>

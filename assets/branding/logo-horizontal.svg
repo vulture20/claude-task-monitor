@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 256" width="760" height="256">
+  <title>Claude Task Monitor</title>
+  <rect width="760" height="256" rx="32" fill="#1B1D21"/>
+  <g>
+    
+    <circle cx="66" cy="84" r="12" fill="#4CC38A"/>
+    <rect x="98" y="72" width="104" height="24" rx="12" fill="#30343A"/>
+    <rect x="98" y="72" width="92" height="24" rx="12" fill="#D97757"/>
+    <circle cx="66" cy="128" r="12" fill="#E5A54B"/>
+    <rect x="98" y="116" width="104" height="24" rx="12" fill="#30343A"/>
+    <rect x="98" y="116" width="60" height="24" rx="12" fill="#D97757"/>
+    <circle cx="66" cy="172" r="12" fill="#8A8F98"/>
+    <rect x="98" y="160" width="104" height="24" rx="12" fill="#30343A"/>
+    <rect x="98" y="160" width="30" height="24" rx="12" fill="#D97757"/>
+  </g>
+  <g font-family="Segoe UI, Inter, Helvetica, Arial, sans-serif">
+    <text x="290" y="132" font-size="64" font-weight="600" fill="#E6E8EB">Claude Task</text>
+    <text x="292" y="190" font-size="40" font-weight="400" fill="#9AA0A8" letter-spacing="6">MONITOR</text>
+  </g>
+</svg>
