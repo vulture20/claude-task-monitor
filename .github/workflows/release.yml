@@ -1,6 +1,7 @@
 name: Release
 
-# Baut bei einem Tag v* (z. B. v0.4.0) die exe und hängt sie an ein GitHub-Release.
+# Bei einem Tag v* (z. B. v1.0.0): Version aus dem Tag in die exe setzen, beide Varianten bauen,
+# als ZIP mit README, CHANGELOG und LICENSE packen und mit Prüfsummen an ein GitHub-Release hängen.
 on:
   push:
     tags:
@@ -12,6 +13,8 @@ permissions:
 jobs:
   release:
     runs-on: windows-latest
+    env:
+      PROJECT: src/ClaudeTaskMonitor/ClaudeTaskMonitor.csproj
     steps:
       - uses: actions/checkout@v4
 
@@ -23,23 +26,85 @@ jobs:
         id: version
         shell: pwsh
         run: |
-          $version = "${{ github.ref_name }}".TrimStart("v")
+          $tag = "${{ github.ref_name }}"
+          $version = $tag.TrimStart("v")
+          if ($version -notmatch '^\d+\.\d+\.\d+$') { throw "Tag '$tag' ist keine Version der Form vX.Y.Z" }
           "value=$version" >> $env:GITHUB_OUTPUT
 
-      - name: Veröffentlichen (Single-File, framework-abhängig)
+      - name: Veröffentlichen (framework-abhängig und self-contained)
         shell: pwsh
-        run: >
-          dotnet publish src/ClaudeTaskMonitor/ClaudeTaskMonitor.csproj
-          -c Release -r win-x64 --self-contained false
-          -p:PublishSingleFile=true
-          -p:Version=${{ steps.version.outputs.value }}
-          -o publish
+        run: |
+          $v = "${{ steps.version.outputs.value }}"
+          $common = @("-c", "Release", "-r", "win-x64", "-p:PublishSingleFile=true",
+                      "-p:Version=$v", "-p:FileVersion=$v.0", "-p:AssemblyVersion=$v.0",
+                      "-p:InformationalVersion=$v", "-p:IncludeSourceRevisionInInformationalVersion=false")
+          dotnet publish $env:PROJECT @common --self-contained false -o out/framework-dependent
+          if ($LASTEXITCODE -ne 0) { throw "publish framework-dependent fehlgeschlagen" }
+          dotnet publish $env:PROJECT @common --self-contained true -o out/self-contained
+          if ($LASTEXITCODE -ne 0) { throw "publish self-contained fehlgeschlagen" }
+
+      - name: Version in den exe-Dateien prüfen
+        shell: pwsh
+        run: |
+          $v = "${{ steps.version.outputs.value }}"
+          foreach ($variant in "framework-dependent", "self-contained") {
+            $info = (Get-Item "out/$variant/ClaudeTaskMonitor.exe").VersionInfo
+            "{0}: FileVersion={1} ProductVersion={2} Copyright={3}" -f $variant, $info.FileVersion, $info.ProductVersion, $info.LegalCopyright
+            if ($info.FileVersion -ne "$v.0") { throw "$variant hat FileVersion $($info.FileVersion) statt $v.0" }
+            if ($info.ProductVersion -ne $v) { throw "$variant hat ProductVersion $($info.ProductVersion) statt $v" }
+            if ($info.LegalCopyright -notlike "*Schr*pel*") { throw "$variant hat Copyright $($info.LegalCopyright)" }
+          }
+
+      - name: ZIP-Pakete packen
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          New-Item -ItemType Directory -Force dist | Out-Null
+          foreach ($variant in "framework-dependent", "self-contained") {
+            $stage = "stage/$variant"
+            New-Item -ItemType Directory -Force $stage | Out-Null
+            Copy-Item "out/$variant/ClaudeTaskMonitor.exe", README.md, CHANGELOG.md, LICENSE $stage
+            Compress-Archive -Path "$stage/*" -DestinationPath "dist/ClaudeTaskMonitor-$tag-win-x64-$variant.zip"
+          }
+          Push-Location dist
+          Get-ChildItem *.zip | ForEach-Object {
+            "{0}  {1}" -f (Get-FileHash $_.Name -Algorithm SHA256).Hash.ToLower(), $_.Name
+          } | Set-Content -Encoding ascii SHA256SUMS.txt
+          Get-Content SHA256SUMS.txt
+          Get-ChildItem | Format-Table Name, Length
+          Pop-Location
+
+      - name: Release-Notes aus dem CHANGELOG
+        shell: pwsh
+        run: |
+          $v = "${{ steps.version.outputs.value }}"
+          $lines = Get-Content CHANGELOG.md -Encoding utf8
+          $start = ($lines | Select-String -Pattern "^## \[$([regex]::Escape($v))\]").LineNumber
+          if (-not $start) { throw "Kein Abschnitt '## [$v]' in CHANGELOG.md" }
+          $section = @()
+          foreach ($line in $lines[$start..($lines.Count - 1)]) {
+            if ($line -match '^## \[' -or $line -match '^\[[^\]]+\]: ') { break }
+            $section += $line
+          }
+          $header = @(
+            "**Welches Paket? / Which package?**",
+            "",
+            "- ``*-framework-dependent.zip``: klein, braucht die [.NET 10 Desktop Runtime (x64)](https://dotnet.microsoft.com/download/dotnet/10.0) / small, requires the .NET 10 Desktop Runtime (x64)",
+            "- ``*-self-contained.zip``: groß, keine Voraussetzungen / large, no requirements",
+            "",
+            "ZIP entpacken und ``ClaudeTaskMonitor.exe`` starten. Prüfsummen: ``SHA256SUMS.txt``. / Unzip and run ``ClaudeTaskMonitor.exe``. Checksums: ``SHA256SUMS.txt``.",
+            ""
+          )
+          ($header + $section) | Set-Content -Encoding utf8 release-notes.md
+          Get-Content release-notes.md
 
       - name: Release anlegen
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-        run: >
-          gh release create "${{ github.ref_name }}" publish/ClaudeTaskMonitor.exe
-          --title "Claude Task Monitor ${{ github.ref_name }}"
-          --notes "Benötigt die .NET 10 Desktop Runtime (x64). Einfach ClaudeTaskMonitor.exe starten."
+        run: |
+          gh release create "${{ github.ref_name }}" (Get-ChildItem dist/*).FullName `
+            --title "Claude Task Monitor ${{ github.ref_name }}" `
+            --notes-file release-notes.md `
+            --generate-notes
+          if ($LASTEXITCODE -ne 0) { throw "gh release create fehlgeschlagen" }
