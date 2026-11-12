@@ -1,3 +1,4 @@
+using ClaudeTaskMonitor.Localization;
 using ClaudeTaskMonitor.Models;
 
 namespace ClaudeTaskMonitor.Services;
@@ -22,11 +23,11 @@ public sealed class DemoSessionSource : ISessionSource
         string Key,
         string Title,
         string Status,
-        string? WaitingFor,
-        string Summary,
+        string? WaitingForKey,
+        string SummaryKey,
         string Cwd,
         string? ProjectId,
-        string? ProjectName,
+        string? ProjectNameKey,
         string? ThreadId,
         int MinutesAgo,
         DemoProcess[] Processes);
@@ -34,8 +35,8 @@ public sealed class DemoSessionSource : ISessionSource
     private static readonly DemoSession[] Sessions =
     {
         new("demo-1", "wetterstation-firmware", "busy", null,
-            "Baut die Firmware und führt die Unit-Tests aus",
-            @"C:\Projekte\wetterstation", "chan_demo0000000000wetter01", "Wetterstation", "cmsg_demo00000000000000a4f2c1", 0,
+            "Demo1Summary",
+            @"C:\Projekte\wetterstation", "chan_demo0000000000wetter01", "DemoProjectWeather", "cmsg_demo00000000000000a4f2c1", 0,
             new DemoProcess[]
             {
                 new("claude.exe", 11840, 0, 1.8, 312),
@@ -45,16 +46,16 @@ public sealed class DemoSessionSource : ISessionSource
                 new("cc1plus.exe", 13052, 3, 10.9, 151),
                 new("ninja.exe", 12940, 3, 0.2, 7),
             }),
-        new("demo-2", "wetterstation-doku", "waiting", "Freigabe",
-            "Möchte die Changelog-Datei aktualisieren",
-            @"C:\Projekte\wetterstation", "chan_demo0000000000wetter01", "Wetterstation", "cmsg_demo00000000000000b81e07", 3,
+        new("demo-2", "wetterstation-doku", "waiting", "Demo2WaitingFor",
+            "Demo2Summary",
+            @"C:\Projekte\wetterstation", "chan_demo0000000000wetter01", "DemoProjectWeather", "cmsg_demo00000000000000b81e07", 3,
             new DemoProcess[]
             {
                 new("claude.exe", 9412, 0, 0.3, 268),
             }),
         new("demo-3", "fotoalbum-frontend", "busy", null,
-            "Startet den Dev-Server und prüft die Galerie-Ansicht",
-            @"D:\Code\fotoalbum-web", "chan_demo0000000000fotoalb2", "Fotoalbum-Web", "cmsg_demo00000000000000c35d90", 0,
+            "Demo3Summary",
+            @"D:\Code\fotoalbum-web", "chan_demo0000000000fotoalb2", "DemoProjectPhotos", "cmsg_demo00000000000000c35d90", 0,
             new DemoProcess[]
             {
                 new("claude.exe", 15320, 0, 1.2, 297),
@@ -63,14 +64,14 @@ public sealed class DemoSessionSource : ISessionSource
                 new("chrome-headless-shell.exe", 16388, 1, 3.1, 186),
             }),
         new("demo-4", "fotoalbum-api", "idle", null,
-            "Pull Request für die Upload-Grenze erstellt",
-            @"D:\Code\fotoalbum-api", "chan_demo0000000000fotoalb2", "Fotoalbum-Web", "cmsg_demo00000000000000d7a614", 12,
+            "Demo4Summary",
+            @"D:\Code\fotoalbum-api", "chan_demo0000000000fotoalb2", "DemoProjectPhotos", "cmsg_demo00000000000000d7a614", 12,
             new DemoProcess[]
             {
                 new("claude.exe", 7736, 0, 0.0, 241),
             }),
         new("demo-5", "skripte", "ended", null,
-            "Datenimport läuft im Hintergrund weiter",
+            "Demo5Summary",
             @"C:\Tools\skripte", null, null, null, 25,
             new DemoProcess[]
             {
@@ -98,11 +99,11 @@ public sealed class DemoSessionSource : ISessionSource
             var meta = new SessionMetadata(
                 DesktopTitle: s.Title,
                 TitleSource: null,
-                Summary: s.Summary,
+                Summary: Loc.T(s.SummaryKey),
                 DesktopCwd: s.Cwd,
                 LastActivityAt: _start.AddMinutes(-s.MinutesAgo),
                 ProjectId: s.ProjectId,
-                ProjectName: s.ProjectName,
+                ProjectName: s.ProjectNameKey is null ? null : Loc.T(s.ProjectNameKey),
                 ThreadId: s.ThreadId);
 
             groups.Add(new SessionGroup(
@@ -110,7 +111,7 @@ public sealed class DemoSessionSource : ISessionSource
                 RootPid: s.Processes[0].Pid,
                 Title: s.Title,
                 Status: s.Status,
-                WaitingFor: s.WaitingFor,
+                WaitingFor: s.WaitingForKey is null ? null : Loc.T(s.WaitingForKey),
                 Cwd: s.Cwd,
                 SessionId: $"00000000-0000-4000-8000-00000000000{groups.Count + 1}",
                 HostSessionId: null,

@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Windows.Threading;
+using ClaudeTaskMonitor.Localization;
 using ClaudeTaskMonitor.Models;
 using ClaudeTaskMonitor.Services;
 
@@ -13,10 +14,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private bool _scanning;
     private bool _started;
     private bool _isPaused;
-    private string _summaryText = "Suche Claude-Prozesse …";
+    private string _summaryText = Loc.T("Searching");
     private string _totalCpuText = string.Empty;
     private bool _isEmpty;
     private string? _expandKey;
+    private IReadOnlyList<SessionGroup>? _lastGroups;
 
     /// <param name="expandKey">Sitzung, deren Karte nach dem ersten Durchlauf aufgeklappt wird (Demo-Modus).</param>
     public MainViewModel(ISessionSource monitor, AppSettings settings, string? expandKey = null)
@@ -26,6 +28,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _settings = settings;
         _timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromSeconds(settings.IntervalSeconds) };
         _timer.Tick += async (_, _) => await RefreshAsync();
+        Loc.Instance.LanguageChanged += OnLanguageChanged;
     }
 
     /// <summary>Sitzungen nach Projekt gruppiert; „Ohne Projekt“ steht zuletzt.</summary>
@@ -70,6 +73,26 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public bool IsInterval2 => IntervalSeconds == 2;
     public bool IsInterval5 => IntervalSeconds == 5;
 
+    /// <summary>Sprachwahl im Kontextmenü; wird in den Einstellungen gespeichert.</summary>
+    public UiLanguage Language
+    {
+        get => Loc.Instance.Setting;
+        set
+        {
+            Loc.Instance.SetLanguage(value);
+            _settings.Language = Loc.ToSettingValue(value);
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsLanguageAuto));
+            OnPropertyChanged(nameof(IsLanguageGerman));
+            OnPropertyChanged(nameof(IsLanguageEnglish));
+            _settings.Save();
+        }
+    }
+
+    public bool IsLanguageAuto => Language == UiLanguage.Auto;
+    public bool IsLanguageGerman => Language == UiLanguage.German;
+    public bool IsLanguageEnglish => Language == UiLanguage.English;
+
     /// <summary>Bei minimiertem Fenster wird nicht abgetastet.</summary>
     public bool IsPaused
     {
@@ -102,6 +125,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public void Dispose()
     {
+        Loc.Instance.LanguageChanged -= OnLanguageChanged;
         _timer.Stop();
         _monitor.Dispose();
     }
@@ -132,8 +156,25 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
     }
 
+    /// <summary>Texte aus den ViewModels sofort neu aufbauen, nicht erst beim nächsten Takt.</summary>
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        if (_lastGroups is null)
+        {
+            SummaryText = Loc.T("Searching");
+            return;
+        }
+
+        // Demo-Daten enthalten selbst übersetzte Texte und werden daher neu erzeugt.
+        if (_monitor is DemoSessionSource)
+            _ = RefreshAsync();
+        else
+            Apply(_lastGroups);
+    }
+
     private void Apply(IReadOnlyList<SessionGroup> groups)
     {
+        _lastGroups = groups;
         var sections = groups
             .GroupBy(g => g.Metadata.ProjectId ?? ProjectSectionViewModel.NoProjectKey)
             .Select(s => (Key: s.Key, Title: SectionTitle(s.Key, s), Groups: (IReadOnlyList<SessionGroup>)s.ToList()))
@@ -165,15 +206,15 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         IsEmpty = groups.Count == 0;
         TotalCpuText = Formatting.Cpu(totalCpu);
         SummaryText = groups.Count == 1
-            ? $"1 Sitzung · {processCount} Prozesse"
-            : $"{groups.Count} Sitzungen · {processCount} Prozesse";
+            ? Loc.F("SummaryOne", processCount)
+            : Loc.F("SummaryMany", groups.Count, processCount);
     }
 
     private static string SectionTitle(string key, IEnumerable<SessionGroup> groups)
     {
         if (key == ProjectSectionViewModel.NoProjectKey)
-            return "Ohne Projekt";
+            return Loc.T("NoProject");
         var name = groups.Select(g => g.Metadata.ProjectName).FirstOrDefault(n => !string.IsNullOrWhiteSpace(n));
-        return name ?? "Projekt " + key;
+        return name ?? Loc.F("ProjectFallback", key);
     }
 }

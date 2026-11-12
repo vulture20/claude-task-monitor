@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
+using ClaudeTaskMonitor.Localization;
 using ClaudeTaskMonitor.Models;
 
 namespace ClaudeTaskMonitor.ViewModels;
@@ -93,7 +94,7 @@ public sealed partial class SessionGroupViewModel : ObservableObject
         CpuPercent = group.TotalCpuPercent;
         CpuText = Formatting.Cpu(group.TotalCpuPercent);
         MemoryText = Formatting.Memory(group.TotalWorkingSet);
-        ProcessCountText = group.Processes.Count == 1 ? "1 Prozess" : $"{group.Processes.Count} Prozesse";
+        ProcessCountText = group.Processes.Count == 1 ? Loc.T("ProcessOne") : Loc.F("ProcessMany", group.Processes.Count);
         ToolTip = BuildToolTip(group);
 
         if (IsExpanded)
@@ -145,26 +146,26 @@ public sealed partial class SessionGroupViewModel : ObservableObject
         if (!string.IsNullOrWhiteSpace(meta.Summary))
             lines.Add(meta.Summary!);
         if (!string.IsNullOrWhiteSpace(meta.DesktopTitle))
-            lines.Add($"Titel: {meta.DesktopTitle}");
-        lines.Add($"Sitzung: {group.Title} (PID {group.RootPid})");
+            lines.Add(Loc.F("TipTitle", meta.DesktopTitle));
+        lines.Add(Loc.F("TipSession", group.Title, group.RootPid));
         if (meta.ProjectName is not null || meta.ProjectId is not null)
-            lines.Add($"Projekt: {meta.ProjectName ?? meta.ProjectId}");
+            lines.Add(Loc.F("TipProject", meta.ProjectName ?? meta.ProjectId));
         if (meta.ThreadId is not null)
-            lines.Add($"Thread: {meta.ThreadId}");
+            lines.Add(Loc.F("TipThread", meta.ThreadId));
         if (!string.IsNullOrEmpty(group.SessionId))
-            lines.Add($"Sitzungs-ID: {group.SessionId}");
+            lines.Add(Loc.F("TipSessionId", group.SessionId));
         if (!string.IsNullOrEmpty(group.Cwd))
-            lines.Add($"Ordner: {group.Cwd}");
+            lines.Add(Loc.F("TipFolder", group.Cwd));
         if (meta.LastActivityAt is { } last)
-            lines.Add($"Letzte Aktivität: {last.ToLocalTime():g}");
+            lines.Add(Loc.F("TipLastActivity", last.ToLocalTime()));
         if (!string.IsNullOrEmpty(group.Entrypoint))
-            lines.Add($"Gestartet über: {group.Entrypoint}");
+            lines.Add(Loc.F("TipEntrypoint", group.Entrypoint));
         if (!group.HasSessionFile)
-            lines.Add("Keine Sitzungsdatei gefunden (über die Desktop-App erkannt)");
+            lines.Add(Loc.T("TipNoSessionFile"));
         if (group.Status == "ended")
-            lines.Add("Sitzung beendet, es laufen nur noch verwaiste Prozesse");
+            lines.Add(Loc.T("TipEnded"));
         if (meta.ThreadUrl is not null)
-            lines.Add("Doppelklick: Thread im Browser öffnen");
+            lines.Add(Loc.T("TipDoubleClick"));
         return string.Join(Environment.NewLine, lines);
     }
 }
