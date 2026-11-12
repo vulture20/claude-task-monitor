@@ -22,7 +22,7 @@ Alle Farben stammen aus `src/ClaudeTaskMonitor/App.xaml`:
 - `png/` – PNG-Exporte (16–512 px) und `logo-horizontal.png`
 - `build_icons.py` – erzeugt PNGs und `app.ico` neu aus den SVGs
 
-## Einbinden (später)
+## Einbindung
 
 ```xml
 <!-- ClaudeTaskMonitor.csproj -->

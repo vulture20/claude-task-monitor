@@ -11,7 +11,13 @@
     <Product>Claude Task Monitor</Product>
     <Description>Stay-on-top-Fenster mit den von Claude gestarteten Prozessen, ihrer CPU-Last und der Zuordnung zu Projekt und Thread.</Description>
     <Copyright>Lizenz: AGPL-3.0</Copyright>
+    <ApplicationIcon>..\..\assets\branding\app.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <!-- Icon der exe (ApplicationIcon) und als WPF-Ressource für Fenster und Taskleiste -->
+  <ItemGroup>
+    <Resource Include="..\..\assets\branding\app.ico" Link="app.ico" />
+  </ItemGroup>
 
   <!-- Auslieferung als einzelne exe (Aufruf siehe README). Framework-abhängig braucht sie die
        .NET 10 Desktop Runtime; als self-contained ist die Runtime enthalten. -->
