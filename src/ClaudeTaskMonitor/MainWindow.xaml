@@ -8,7 +8,7 @@
         d:DataContext="{d:DesignInstance Type=vm:MainViewModel}"
         Title="Claude Task Monitor"
         Width="420" Height="500" MinWidth="300" MinHeight="180"
-        Topmost="True"
+        Topmost="{Binding Topmost}"
         WindowStartupLocation="Manual" Left="40" Top="40"
         Background="{StaticResource WindowBackground}"
         Foreground="{StaticResource TextPrimary}"
@@ -48,8 +48,10 @@
                     BorderThickness="1" CornerRadius="5"
                     PreviewMouseLeftButtonDown="SessionCard_PreviewMouseLeftButtonDown">
                 <StackPanel>
-                    <ToggleButton Style="{StaticResource GroupHeaderToggle}" IsChecked="{Binding IsExpanded}" ToolTip="{Binding ToolTip}"
-                                  AutomationProperties.HelpText="{Binding ThreadUrl}">
+                    <!-- Tooltip wird nur beim Überfahren gesetzt (siehe Code-Behind): ein dauerhaft gebundener
+                         Tooltip kostete bei aktivem UI-Automation-Client fast einen ganzen CPU-Kern. -->
+                    <ToggleButton Style="{StaticResource GroupHeaderToggle}" IsChecked="{Binding IsExpanded}"
+                                  MouseEnter="SessionHeader_MouseEnter" MouseLeave="SessionHeader_MouseLeave">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="16" />
@@ -142,7 +144,22 @@
         </DataTemplate>
     </Window.Resources>
 
-    <Grid>
+    <Grid Background="Transparent" ContextMenuOpening="Root_ContextMenuOpening">
+        <Grid.ContextMenu>
+            <ContextMenu>
+                <MenuItem x:Name="OpenThreadItem" Header="Thread im Browser öffnen" Click="OpenThread_Click" />
+                <MenuItem x:Name="CopyThreadItem" Header="Thread-Link kopieren" Click="CopyThread_Click" />
+                <Separator x:Name="ThreadSeparator" />
+                <MenuItem Header="Immer im Vordergrund" IsCheckable="True" IsChecked="{Binding Topmost}" />
+                <MenuItem Header="Aktualisieren alle">
+                    <MenuItem Header="1 Sekunde" IsChecked="{Binding IsInterval1, Mode=OneWay}" Click="Interval_Click" Tag="1" />
+                    <MenuItem Header="2 Sekunden" IsChecked="{Binding IsInterval2, Mode=OneWay}" Click="Interval_Click" Tag="2" />
+                    <MenuItem Header="5 Sekunden" IsChecked="{Binding IsInterval5, Mode=OneWay}" Click="Interval_Click" Tag="5" />
+                </MenuItem>
+                <Separator />
+                <MenuItem Header="Beenden" Click="Exit_Click" />
+            </ContextMenu>
+        </Grid.ContextMenu>
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />

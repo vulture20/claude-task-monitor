@@ -61,10 +61,29 @@ public sealed partial class SessionGroupViewModel : ObservableObject
     public string MemoryText { get => _memoryText; private set => SetProperty(ref _memoryText, value); }
     public string ProcessCountText { get => _processCountText; private set => SetProperty(ref _processCountText, value); }
     public string ToolTip { get => _toolTip; private set => SetProperty(ref _toolTip, value); }
-    public bool IsExpanded { get => _isExpanded; set => SetProperty(ref _isExpanded, value); }
+    /// <summary>
+    /// Aufgeklappt: Prozesszeilen werden gepflegt. Zugeklappt bleibt die Liste leer, damit zugeklappte Karten
+    /// keine Zeilen-Updates (und damit keine Layout-Durchläufe) auslösen.
+    /// </summary>
+    public bool IsExpanded
+    {
+        get => _isExpanded;
+        set
+        {
+            if (!SetProperty(ref _isExpanded, value))
+                return;
+            if (value && _lastGroup is not null)
+                SyncProcesses(_lastGroup);
+            else if (!value)
+                Processes.Clear();
+        }
+    }
+
+    private SessionGroup? _lastGroup;
 
     public void Update(SessionGroup group)
     {
+        _lastGroup = group;
         var meta = group.Metadata;
         Headline = SingleLine(BuildHeadline(group));
         Status = group.Status;
@@ -77,6 +96,12 @@ public sealed partial class SessionGroupViewModel : ObservableObject
         ProcessCountText = group.Processes.Count == 1 ? "1 Prozess" : $"{group.Processes.Count} Prozesse";
         ToolTip = BuildToolTip(group);
 
+        if (IsExpanded)
+            SyncProcesses(group);
+    }
+
+    private void SyncProcesses(SessionGroup group)
+    {
         CollectionSync.Sync(
             Processes,
             group.Processes,

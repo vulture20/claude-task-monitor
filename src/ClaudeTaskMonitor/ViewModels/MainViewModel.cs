@@ -7,19 +7,21 @@ namespace ClaudeTaskMonitor.ViewModels;
 
 public sealed class MainViewModel : ObservableObject, IDisposable
 {
-    private static readonly TimeSpan Interval = TimeSpan.FromSeconds(1);
-
     private readonly MonitorService _monitor;
+    private readonly AppSettings _settings;
     private readonly DispatcherTimer _timer;
     private bool _scanning;
+    private bool _started;
+    private bool _isPaused;
     private string _summaryText = "Suche Claude-Prozesse …";
     private string _totalCpuText = string.Empty;
     private bool _isEmpty;
 
-    public MainViewModel(MonitorService monitor)
+    public MainViewModel(MonitorService monitor, AppSettings settings)
     {
         _monitor = monitor;
-        _timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = Interval };
+        _settings = settings;
+        _timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromSeconds(settings.IntervalSeconds) };
         _timer.Tick += async (_, _) => await RefreshAsync();
     }
 
@@ -30,13 +32,76 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public string TotalCpuText { get => _totalCpuText; private set => SetProperty(ref _totalCpuText, value); }
     public bool IsEmpty { get => _isEmpty; private set => SetProperty(ref _isEmpty, value); }
 
+    public bool Topmost
+    {
+        get => _settings.Topmost;
+        set
+        {
+            if (_settings.Topmost == value)
+                return;
+            _settings.Topmost = value;
+            OnPropertyChanged();
+            _settings.Save();
+        }
+    }
+
+    /// <summary>Abtastintervall in Sekunden (1, 2 oder 5).</summary>
+    public int IntervalSeconds
+    {
+        get => _settings.IntervalSeconds;
+        set
+        {
+            if (!AppSettings.AllowedIntervals.Contains(value) || _settings.IntervalSeconds == value)
+                return;
+            _settings.IntervalSeconds = value;
+            _timer.Interval = TimeSpan.FromSeconds(value);
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsInterval1));
+            OnPropertyChanged(nameof(IsInterval2));
+            OnPropertyChanged(nameof(IsInterval5));
+            _settings.Save();
+        }
+    }
+
+    public bool IsInterval1 => IntervalSeconds == 1;
+    public bool IsInterval2 => IntervalSeconds == 2;
+    public bool IsInterval5 => IntervalSeconds == 5;
+
+    /// <summary>Bei minimiertem Fenster wird nicht abgetastet.</summary>
+    public bool IsPaused
+    {
+        get => _isPaused;
+        set
+        {
+            if (!SetProperty(ref _isPaused, value) || !_started)
+                return;
+            if (value)
+            {
+                _timer.Stop();
+            }
+            else
+            {
+                _monitor.ResetBaseline();
+                _ = RefreshAsync();
+                _timer.Start();
+            }
+        }
+    }
+
     public async void Start()
     {
+        _started = true;
+        if (_isPaused)
+            return;
         await RefreshAsync();
         _timer.Start();
     }
 
-    public void Dispose() => _timer.Stop();
+    public void Dispose()
+    {
+        _timer.Stop();
+        _monitor.Dispose();
+    }
 
     private async Task RefreshAsync()
     {
