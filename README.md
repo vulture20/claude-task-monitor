@@ -18,7 +18,14 @@ Ein kleines Windows-Tool, das immer im Vordergrund bleibt (Stay-on-top). Es zeig
 
 ## Installation
 
-Unter [Releases](../../releases) liegt `ClaudeTaskMonitor.exe` als einzelne Datei. Sie braucht die **.NET 10 Desktop Runtime (x64)**. Eine Installation ist nicht nötig: einfach die exe starten.
+Unter [Releases](../../releases) gibt es je Version zwei ZIP-Pakete. Beide enthalten `ClaudeTaskMonitor.exe`, `README.md`, `CHANGELOG.md` und `LICENSE`:
+
+| Paket | Größe | Voraussetzung |
+|---|---|---|
+| `ClaudeTaskMonitor-v<Version>-win-x64-framework-dependent.zip` | klein (< 1 MB) | **.NET 10 Desktop Runtime (x64)** |
+| `ClaudeTaskMonitor-v<Version>-win-x64-self-contained.zip` | groß (Runtime enthalten) | keine |
+
+Eine Installation ist nicht nötig: ZIP entpacken und die exe starten. Die Prüfsummen stehen in `SHA256SUMS.txt` am Release. Änderungen je Version: [CHANGELOG.md](CHANGELOG.md).
 
 ## Bedienung
 
@@ -107,7 +114,7 @@ Einzelne exe mit eingebauter Runtime (~133 MB, läuft ohne installiertes .NET):
 dotnet publish src/ClaudeTaskMonitor/ClaudeTaskMonitor.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish/self-contained
 ```
 
-Ein Tag `v*` (z. B. `v0.4.0`) startet den Workflow `.github/workflows/release.yml`. Er baut die framework-abhängige exe und hängt sie an ein GitHub-Release.
+Ein Tag `v*` (z. B. `v1.0.0`) startet den Workflow `.github/workflows/release.yml`. Er setzt die Version aus dem Tag in die exe, baut beide Varianten, packt sie mit README, CHANGELOG und LICENSE als ZIP und hängt sie samt `SHA256SUMS.txt` an ein GitHub-Release. Vor dem Tag einen Abschnitt für die Version in `CHANGELOG.md` anlegen: Er wird zu den Release-Notes.
 
 ## Aufbau
 
@@ -139,7 +146,14 @@ A small Windows tool that always stays in the foreground (stay-on-top). It shows
 
 ## Installation
 
-[Releases](../../releases) provides `ClaudeTaskMonitor.exe` as a single file. It requires the **.NET 10 Desktop Runtime (x64)**. No installation is needed: just run the exe.
+[Releases](../../releases) provides two ZIP packages per version. Both contain `ClaudeTaskMonitor.exe`, `README.md`, `CHANGELOG.md` and `LICENSE`:
+
+| Package | Size | Requirement |
+|---|---|---|
+| `ClaudeTaskMonitor-v<version>-win-x64-framework-dependent.zip` | small (< 1 MB) | **.NET 10 Desktop Runtime (x64)** |
+| `ClaudeTaskMonitor-v<version>-win-x64-self-contained.zip` | large (runtime included) | none |
+
+No installation is needed: unzip and run the exe. Checksums are in `SHA256SUMS.txt` on the release. Changes per version: [CHANGELOG.md](CHANGELOG.md).
 
 ## Usage
 
@@ -228,7 +242,7 @@ Single exe with bundled runtime (~133 MB, runs without .NET installed):
 dotnet publish src/ClaudeTaskMonitor/ClaudeTaskMonitor.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish/self-contained
 ```
 
-A `v*` tag (e.g. `v0.4.0`) triggers the `.github/workflows/release.yml` workflow. It builds the framework-dependent exe and attaches it to a GitHub release.
+A `v*` tag (e.g. `v1.0.0`) triggers the `.github/workflows/release.yml` workflow. It stamps the version from the tag into the exe, builds both variants, zips each with README, CHANGELOG and LICENSE, and attaches them together with `SHA256SUMS.txt` to a GitHub release. Add a section for the version to `CHANGELOG.md` before tagging: it becomes the release notes.
 
 ## Structure
 

@@ -7,10 +7,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
 
-    <Version>0.4.0</Version>
+    <Version>1.0.0</Version>
+    <Authors>Thorsten Schröpel</Authors>
+    <Company>Thorsten Schröpel</Company>
     <Product>Claude Task Monitor</Product>
     <Description>Stay-on-top-Fenster mit den von Claude gestarteten Prozessen, ihrer CPU-Last und der Zuordnung zu Projekt und Thread.</Description>
-    <Copyright>Lizenz: AGPL-3.0</Copyright>
+    <Copyright>Copyright © 2026 Thorsten Schröpel</Copyright>
     <ApplicationIcon>..\..\assets\branding\app.ico</ApplicationIcon>
   </PropertyGroup>
 
