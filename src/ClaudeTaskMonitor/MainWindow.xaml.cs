@@ -1,5 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using ClaudeTaskMonitor.Native;
@@ -12,16 +13,75 @@ public partial class MainWindow : Window
 {
     private const int DwmwaUseImmersiveDarkMode = 20;
 
+    private readonly AppSettings _settings;
     private readonly MainViewModel _viewModel;
+
+    /// <summary>Karte, auf der das Kontextmenü geöffnet wurde (für die Thread-Einträge).</summary>
+    private SessionGroupViewModel? _menuSession;
 
     public MainWindow()
     {
         InitializeComponent();
-        _viewModel = new MainViewModel(MonitorService.CreateDefault());
+        _settings = AppSettings.Load();
+        ApplyBounds(_settings);
+
+        _viewModel = new MainViewModel(MonitorService.CreateDefault(), _settings);
         DataContext = _viewModel;
         Loaded += (_, _) => _viewModel.Start();
+        StateChanged += (_, _) => _viewModel.IsPaused = WindowState == WindowState.Minimized;
+        Closing += (_, _) => SaveBounds();
         Closed += (_, _) => _viewModel.Dispose();
     }
+
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        // Dunkle Titelleiste (Windows 10 20H1 und neuer); auf älteren Systemen wirkungslos.
+        var hwnd = new WindowInteropHelper(this).Handle;
+        var enabled = 1;
+        NativeMethods.DwmSetWindowAttribute(hwnd, DwmwaUseImmersiveDarkMode, ref enabled, Marshal.SizeOf<int>());
+    }
+
+    // ---------- Fensterposition ----------
+
+    /// <summary>Übernimmt gespeicherte Position und Größe, wenn das Fenster damit auf dem virtuellen Bildschirm sichtbar bleibt.</summary>
+    private void ApplyBounds(AppSettings settings)
+    {
+        if (settings.Width is { } w && settings.Height is { } h && w >= MinWidth && h >= MinHeight)
+        {
+            Width = w;
+            Height = h;
+        }
+
+        if (settings.Left is not { } left || settings.Top is not { } top)
+            return;
+
+        var visible = new Rect(
+            SystemParameters.VirtualScreenLeft,
+            SystemParameters.VirtualScreenTop,
+            SystemParameters.VirtualScreenWidth,
+            SystemParameters.VirtualScreenHeight);
+        // Mindestens die Titelleiste (100 × 30) muss erreichbar bleiben.
+        if (visible.IntersectsWith(new Rect(left, top, 100, 30)))
+        {
+            Left = left;
+            Top = top;
+        }
+    }
+
+    private void SaveBounds()
+    {
+        var bounds = WindowState == WindowState.Normal ? new Rect(Left, Top, Width, Height) : RestoreBounds;
+        if (bounds.IsEmpty)
+            return;
+        _settings.Left = Math.Round(bounds.Left);
+        _settings.Top = Math.Round(bounds.Top);
+        _settings.Width = Math.Round(bounds.Width);
+        _settings.Height = Math.Round(bounds.Height);
+        _settings.Save();
+    }
+
+    // ---------- Karten ----------
 
     /// <summary>
     /// Doppelklick auf eine Sitzungskarte öffnet den Thread im Browser. Der erste Klick hat die Karte bereits
@@ -37,12 +97,65 @@ public partial class MainWindow : Window
         session.OpenThread();
     }
 
-    protected override void OnSourceInitialized(EventArgs e)
+    private void SessionHeader_MouseEnter(object sender, MouseEventArgs e)
     {
-        base.OnSourceInitialized(e);
-        // Dunkle Titelleiste (Windows 10 20H1 und neuer); auf älteren Systemen wirkungslos.
-        var hwnd = new WindowInteropHelper(this).Handle;
-        var enabled = 1;
-        NativeMethods.DwmSetWindowAttribute(hwnd, DwmwaUseImmersiveDarkMode, ref enabled, Marshal.SizeOf<int>());
+        if (sender is FrameworkElement { DataContext: SessionGroupViewModel session } element)
+            element.ToolTip = session.ToolTip;
     }
+
+    private void SessionHeader_MouseLeave(object sender, MouseEventArgs e)
+    {
+        if (sender is FrameworkElement element)
+            element.ToolTip = null;
+    }
+
+    // ---------- Kontextmenü ----------
+
+    private void Root_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+    {
+        _menuSession = FindSession(e.OriginalSource as DependencyObject);
+        var hasThread = _menuSession?.CanOpenThread == true;
+        var visibility = hasThread ? Visibility.Visible : Visibility.Collapsed;
+        OpenThreadItem.Visibility = visibility;
+        CopyThreadItem.Visibility = visibility;
+        ThreadSeparator.Visibility = visibility;
+    }
+
+    private static SessionGroupViewModel? FindSession(DependencyObject? source)
+    {
+        while (source is not null)
+        {
+            if (source is FrameworkElement { DataContext: SessionGroupViewModel session })
+                return session;
+            source = source is System.Windows.Media.Visual or System.Windows.Media.Media3D.Visual3D
+                ? System.Windows.Media.VisualTreeHelper.GetParent(source)
+                : LogicalTreeHelper.GetParent(source);
+        }
+
+        return null;
+    }
+
+    private void OpenThread_Click(object sender, RoutedEventArgs e) => _menuSession?.OpenThread();
+
+    private void CopyThread_Click(object sender, RoutedEventArgs e)
+    {
+        if (_menuSession?.ThreadUrl is not { } url)
+            return;
+        try
+        {
+            Clipboard.SetText(url);
+        }
+        catch (COMException)
+        {
+            // Zwischenablage gerade von einem anderen Programm belegt.
+        }
+    }
+
+    private void Interval_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem { Tag: string tag } && int.TryParse(tag, out var seconds))
+            _viewModel.IntervalSeconds = seconds;
+    }
+
+    private void Exit_Click(object sender, RoutedEventArgs e) => Close();
 }

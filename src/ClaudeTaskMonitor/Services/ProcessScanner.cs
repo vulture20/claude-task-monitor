@@ -9,7 +9,7 @@ namespace ClaudeTaskMonitor.Services;
 /// Jeder Aufruf von <see cref="Scan"/> ist eine Abtastung; die CPU-Last ergibt sich aus der
 /// Differenz zur vorherigen Abtastung. Nicht threadsicher: nur von einem Thread nacheinander aufrufen.
 /// </summary>
-public sealed partial class ProcessScanner
+public sealed partial class ProcessScanner : IDisposable
 {
     private const string ClaudeExe = "claude.exe";
     private const string DesktopPathMarker = @"\WindowsApps\Claude_";
@@ -22,6 +22,7 @@ public sealed partial class ProcessScanner
     private static partial Regex SponsorRegex();
 
     private readonly SessionRegistry _sessions;
+    private readonly ProcessSnapshot _snapshot = new();
     private readonly int _processorCount = Math.Max(1, Environment.ProcessorCount);
 
     private Dictionary<string, long> _previousCpu = new();
@@ -39,7 +40,15 @@ public sealed partial class ProcessScanner
     /// <summary>Gelesene --sponsor-PIDs (null = kein Sponsor), je Prozess nur einmal ermittelt.</summary>
     private Dictionary<string, int?> _sponsorCache = new();
 
+    /// <summary>Programmpfade von claude.exe-Prozessen, je Prozess nur einmal ermittelt.</summary>
+    private Dictionary<string, string?> _imagePathCache = new();
+
     public ProcessScanner(SessionRegistry sessions) => _sessions = sessions;
+
+    /// <summary>Nächste Abtastung ohne Vergleichswert (z. B. nach einer Pause): CPU-Last startet dann bei 0.</summary>
+    public void ResetBaseline() => _previousTimestamp = 0;
+
+    public void Dispose() => _snapshot.Dispose();
 
     public IReadOnlyList<SessionGroup> Scan()
     {
@@ -50,23 +59,23 @@ public sealed partial class ProcessScanner
             ? 0
             : (timestamp - _previousTimestamp) * 10_000_000.0 / Stopwatch.Frequency;
 
-        var ctx = new ScanContext(ProcessSnapshot.Take(), elapsed100Ns, _previousCpu);
+        var ctx = new ScanContext(_snapshot.Take(), elapsed100Ns, _previousCpu, _imagePathCache);
 
         // 1. Sitzungswurzeln und ihre Prozessbäume.
         var builders = new Dictionary<string, GroupBuilder>();
         var roots = FindRoots(ctx);
-        ctx.RootPids.UnionWith(roots.Select(r => r.Pid));
+        ctx.RootPids.UnionWith(roots.Select(r => r.Process.Pid));
         foreach (var root in roots)
         {
             var builder = new GroupBuilder(CreateTemplate(root));
             builders[builder.Template.Key] = builder;
-            CollectTree(ctx, builder, root.Pid, root.Detail, depth: 0, isOrphan: false);
+            CollectTree(ctx, builder, root.Process, depth: 0, isOrphan: false);
         }
 
         // 2. Verwaiste Prozesse: zuerst über die Merkliste, dann über --sponsor.
-        foreach (var (pid, detail, groupKey) in FindOrphans(ctx, builders))
+        foreach (var (process, groupKey) in FindOrphans(ctx))
         {
-            if (ctx.Reached.ContainsKey(pid))
+            if (ctx.Reached.ContainsKey(process.Pid))
                 continue; // bereits als Nachfahre eines früheren Waisen erfasst
             if (!builders.TryGetValue(groupKey, out var builder))
             {
@@ -77,20 +86,21 @@ public sealed partial class ProcessScanner
             }
 
             var depth = builder.Template.Status == "ended" ? 0 : 1;
-            CollectTree(ctx, builder, pid, detail, depth, isOrphan: true);
+            CollectTree(ctx, builder, process, depth, isOrphan: true);
         }
 
         var groups = builders.Values.Select(b => b.Build()).OrderBy(g => g.RootCreationTime).ToList();
-        Remember(groups, ctx, now);
+        Remember(groups, now);
 
         _previousCpu = ctx.CurrentCpu;
+        _imagePathCache = ctx.UsedImagePaths;
         _previousTimestamp = timestamp;
         return groups;
     }
 
     // ---------- Wurzeln ----------
 
-    private sealed record Root(int Pid, ProcessDetails Detail, SessionFile? Session);
+    private sealed record Root(RawProcess Process, SessionFile? Session);
 
     private List<Root> FindRoots(ScanContext ctx)
     {
@@ -100,14 +110,11 @@ public sealed partial class ProcessScanner
         //    (schützt vor liegengebliebenen Dateien und wiederverwendeten PIDs).
         foreach (var session in _sessions.Load())
         {
-            if (!ctx.Processes.ContainsKey(session.Pid))
+            if (!ctx.Processes.TryGetValue(session.Pid, out var process))
                 continue;
-            var d = ctx.Detail(session.Pid);
-            if (d is null)
+            if (session.ProcStart != 0 && session.ProcStart != process.CreationTime)
                 continue;
-            if (session.ProcStart != 0 && session.ProcStart != d.CreationTime)
-                continue;
-            roots[session.Pid] = new Root(session.Pid, d, session);
+            roots[session.Pid] = new Root(process, session);
         }
 
         // 2. Rückfall: CLI-Kindprozesse der Claude-Desktop-App ohne (gültige) Sitzungsdatei.
@@ -118,17 +125,15 @@ public sealed partial class ProcessScanner
             if (!ctx.Children.TryGetValue(p.Pid, out var kids))
                 continue;
 
-            var parentDetail = ctx.Detail(p.Pid);
             foreach (var kid in kids)
             {
-                if (roots.ContainsKey(kid) || !IsClaudeExe(ctx.Processes[kid]))
+                var child = ctx.Processes[kid];
+                if (roots.ContainsKey(kid) || !IsClaudeExe(child) || child.CreationTime < p.CreationTime)
                     continue;
-                var d = ctx.Detail(kid);
-                if (d?.ImagePath is null || d.ImagePath.IndexOf(CliPathMarker, StringComparison.OrdinalIgnoreCase) < 0)
+                var path = ctx.ImagePath(child);
+                if (path is null || path.IndexOf(CliPathMarker, StringComparison.OrdinalIgnoreCase) < 0)
                     continue;
-                if (parentDetail is not null && d.CreationTime < parentDetail.CreationTime)
-                    continue;
-                roots[kid] = new Root(kid, d, null);
+                roots[kid] = new Root(child, null);
             }
         }
 
@@ -140,13 +145,13 @@ public sealed partial class ProcessScanner
     /// <summary>Hauptprozess der Desktop-App: claude.exe aus WindowsApps\Claude_*, dessen Elternprozess nicht selbst die Desktop-App ist.</summary>
     private static bool IsDesktopMain(ScanContext ctx, RawProcess p)
     {
-        var path = ctx.Detail(p.Pid)?.ImagePath;
+        var path = ctx.ImagePath(p);
         if (path is null || path.IndexOf(DesktopPathMarker, StringComparison.OrdinalIgnoreCase) < 0)
             return false;
 
         if (ctx.Processes.TryGetValue(p.ParentPid, out var parent) && IsClaudeExe(parent))
         {
-            var parentPath = ctx.Detail(parent.Pid)?.ImagePath;
+            var parentPath = ctx.ImagePath(parent);
             if (parentPath is not null && parentPath.Equals(path, StringComparison.OrdinalIgnoreCase))
                 return false; // Electron-Hilfsprozess
         }
@@ -157,10 +162,11 @@ public sealed partial class ProcessScanner
     private static SessionGroup CreateTemplate(Root root)
     {
         var s = root.Session;
+        var p = root.Process;
         return new SessionGroup(
-            Key: $"{root.Pid}:{root.Detail.CreationTime}",
-            RootPid: root.Pid,
-            Title: string.IsNullOrWhiteSpace(s?.Name) ? $"Claude Code (PID {root.Pid})" : s!.Name!,
+            Key: Key(p),
+            RootPid: p.Pid,
+            Title: string.IsNullOrWhiteSpace(s?.Name) ? $"Claude Code (PID {p.Pid})" : s!.Name!,
             Status: s?.Status ?? "unknown",
             WaitingFor: s?.WaitingFor,
             Cwd: s?.Cwd,
@@ -168,7 +174,7 @@ public sealed partial class ProcessScanner
             HostSessionId: s?.HostSessionId,
             Entrypoint: s?.Entrypoint,
             HasSessionFile: s is not null,
-            RootCreationTime: root.Detail.CreationTime,
+            RootCreationTime: p.CreationTime,
             TotalCpuPercent: 0,
             TotalWorkingSet: 0,
             Processes: Array.Empty<ProcessSample>());
@@ -176,19 +182,19 @@ public sealed partial class ProcessScanner
 
     // ---------- Bäume ----------
 
-    private void CollectTree(ScanContext ctx, GroupBuilder builder, int pid, ProcessDetails self, int depth, bool isOrphan)
+    private void CollectTree(ScanContext ctx, GroupBuilder builder, RawProcess self, int depth, bool isOrphan)
     {
-        var key = Key(pid, self.CreationTime);
+        var key = Key(self);
         ctx.CurrentCpu[key] = self.CpuTime;
-        ctx.Reached[pid] = builder.Template.Key;
+        ctx.Reached[self.Pid] = builder.Template.Key;
 
         double cpu = 0;
         if (ctx.Elapsed100Ns > 0 && ctx.PreviousCpu.TryGetValue(key, out var previous))
             cpu = Math.Clamp((self.CpuTime - previous) / (ctx.Elapsed100Ns * _processorCount) * 100.0, 0, 100);
 
-        builder.Samples.Add(new ProcessSample(key, pid, ctx.Processes[pid].Name, depth, cpu, self.WorkingSet, isOrphan));
+        builder.Samples.Add(new ProcessSample(key, self.Pid, self.Name, depth, cpu, self.WorkingSet, isOrphan));
 
-        if (depth > 64 || !ctx.Children.TryGetValue(pid, out var kids))
+        if (depth > 64 || !ctx.Children.TryGetValue(self.Pid, out var kids))
             return;
 
         foreach (var kid in kids)
@@ -196,13 +202,11 @@ public sealed partial class ProcessScanner
             // Eine eigene Sitzung (z. B. verschachteltes Claude Code) bekommt eine eigene Gruppe.
             if (ctx.RootPids.Contains(kid) || ctx.Reached.ContainsKey(kid))
                 continue;
-            var d = ctx.Detail(kid);
-            if (d is null)
-                continue;
+            var child = ctx.Processes[kid];
             // Ein Kind kann nicht vor seinem Elternprozess gestartet sein: sonst wurde die Eltern-PID wiederverwendet.
-            if (d.CreationTime < self.CreationTime)
+            if (child.CreationTime < self.CreationTime)
                 continue;
-            CollectTree(ctx, builder, kid, d, depth + 1, isOrphan: false);
+            CollectTree(ctx, builder, child, depth + 1, isOrphan: false);
         }
     }
 
@@ -214,32 +218,28 @@ public sealed partial class ProcessScanner
     /// b) mit --sponsor &lt;pid&gt; gestartet, wobei der Sponsor zu einer Sitzung gehört oder gehörte.
     /// Sortiert nach Startzeit, damit Eltern vor ihren Kindern übernommen werden.
     /// </summary>
-    private List<(int Pid, ProcessDetails Detail, string GroupKey)> FindOrphans(ScanContext ctx, Dictionary<string, GroupBuilder> builders)
+    private List<(RawProcess Process, string GroupKey)> FindOrphans(ScanContext ctx)
     {
-        var result = new Dictionary<int, (int Pid, ProcessDetails Detail, string GroupKey)>();
+        var result = new Dictionary<int, (RawProcess Process, string GroupKey)>();
 
         foreach (var (key, groupKey) in _adoptions)
         {
             var pid = PidOf(key);
-            if (ctx.Reached.ContainsKey(pid) || !ctx.Processes.ContainsKey(pid))
+            if (ctx.Reached.ContainsKey(pid) || !ctx.Processes.TryGetValue(pid, out var process) || Key(process) != key)
                 continue;
-            var d = ctx.Detail(pid);
-            if (d is null || Key(pid, d.CreationTime) != key)
-                continue;
-            result[pid] = (pid, d, groupKey);
+            result[pid] = (process, groupKey);
         }
 
         var sponsorCache = new Dictionary<string, int?>();
         foreach (var p in ctx.Processes.Values)
         {
-            // Kandidaten: Elternprozess beendet, noch keiner Sitzung zugeordnet.
-            if (p.Pid <= 4 || ctx.Processes.ContainsKey(p.ParentPid) || ctx.Reached.ContainsKey(p.Pid) || result.ContainsKey(p.Pid))
+            // Kandidaten: Elternprozess beendet (oder PID inzwischen neu vergeben), noch keiner Sitzung zugeordnet.
+            if (p.Pid <= 4 || ctx.Reached.ContainsKey(p.Pid) || result.ContainsKey(p.Pid))
                 continue;
-            var d = ctx.Detail(p.Pid);
-            if (d is null)
+            if (ctx.Processes.TryGetValue(p.ParentPid, out var parent) && parent.CreationTime <= p.CreationTime)
                 continue;
 
-            var key = Key(p.Pid, d.CreationTime);
+            var key = Key(p);
             if (!_sponsorCache.TryGetValue(key, out var sponsor))
                 sponsor = ReadSponsor(p.Pid);
             sponsorCache[key] = sponsor;
@@ -247,11 +247,11 @@ public sealed partial class ProcessScanner
             if (sponsor is not { } sponsorPid)
                 continue;
             if (ctx.Reached.TryGetValue(sponsorPid, out var groupKey) || TryGetHistory(sponsorPid, out groupKey))
-                result[p.Pid] = (p.Pid, d, groupKey);
+                result[p.Pid] = (p, groupKey);
         }
 
         _sponsorCache = sponsorCache;
-        return result.Values.OrderBy(o => o.Detail.CreationTime).ToList();
+        return result.Values.OrderBy(o => o.Process.CreationTime).ToList();
     }
 
     private bool TryGetHistory(int pid, out string groupKey)
@@ -275,7 +275,7 @@ public sealed partial class ProcessScanner
         return match.Success && int.TryParse(match.Groups[1].Value, out var sponsor) ? sponsor : null;
     }
 
-    private void Remember(List<SessionGroup> groups, ScanContext ctx, DateTime now)
+    private void Remember(List<SessionGroup> groups, DateTime now)
     {
         var adoptions = new Dictionary<string, string>();
         foreach (var group in groups)
@@ -301,7 +301,7 @@ public sealed partial class ProcessScanner
             _groupMemory.Remove(key);
     }
 
-    private static string Key(int pid, long creationTime) => $"{pid}:{creationTime}";
+    private static string Key(RawProcess p) => $"{p.Pid}:{p.CreationTime}";
 
     private static int PidOf(string key) => int.Parse(key.AsSpan(0, key.IndexOf(':')));
 
@@ -320,16 +320,21 @@ public sealed partial class ProcessScanner
         };
     }
 
-    /// <summary>Zustand eines Durchlaufs: Snapshot, Kindliste und zwischengespeicherte Prozessdetails.</summary>
+    /// <summary>Zustand eines Durchlaufs: Prozessliste, Kindliste und Pfad-Cache.</summary>
     private sealed class ScanContext
     {
-        private readonly Dictionary<int, ProcessDetails?> _details = new();
+        private readonly Dictionary<string, string?> _previousImagePaths;
 
-        public ScanContext(Dictionary<int, RawProcess> processes, double elapsed100Ns, Dictionary<string, long> previousCpu)
+        public ScanContext(
+            Dictionary<int, RawProcess> processes,
+            double elapsed100Ns,
+            Dictionary<string, long> previousCpu,
+            Dictionary<string, string?> previousImagePaths)
         {
             Processes = processes;
             Elapsed100Ns = elapsed100Ns;
             PreviousCpu = previousCpu;
+            _previousImagePaths = previousImagePaths;
             Children = new Dictionary<int, List<int>>();
             foreach (var p in processes.Values)
             {
@@ -354,14 +359,18 @@ public sealed partial class ProcessScanner
         /// <summary>In diesem Durchlauf einer Sitzung zugeordnete PIDs → Sitzungsschlüssel.</summary>
         public Dictionary<int, string> Reached { get; } = new();
 
-        public ProcessDetails? Detail(int pid)
+        /// <summary>Pfade, die in diesem Durchlauf gebraucht wurden (werden für den nächsten übernommen).</summary>
+        public Dictionary<string, string?> UsedImagePaths { get; } = new();
+
+        public string? ImagePath(RawProcess p)
         {
-            if (_details.TryGetValue(pid, out var cached))
-                return cached;
-            var withPath = Processes.TryGetValue(pid, out var raw) && IsClaudeExe(raw);
-            var detail = ProcessSnapshot.Query(pid, withPath);
-            _details[pid] = detail;
-            return detail;
+            var key = Key(p);
+            if (UsedImagePaths.TryGetValue(key, out var path))
+                return path;
+            if (!_previousImagePaths.TryGetValue(key, out path))
+                path = ProcessSnapshot.QueryImagePath(p.Pid);
+            UsedImagePaths[key] = path;
+            return path;
         }
     }
 }

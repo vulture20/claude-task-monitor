@@ -1,12 +1,9 @@
 namespace ClaudeTaskMonitor.Models;
 
-/// <summary>Eintrag aus dem System-Snapshot (Toolhelp), noch ohne Zeiten.</summary>
-public sealed record RawProcess(int Pid, int ParentPid, string Name);
-
-/// <summary>Per OpenProcess gelesene Werte eines Prozesses.</summary>
+/// <summary>Eintrag aus der Prozessliste des Systems (NtQuerySystemInformation).</summary>
 /// <param name="CreationTime">FILETIME (UTC) des Prozessstarts.</param>
 /// <param name="CpuTime">Kernel- plus User-Zeit in 100-ns-Einheiten.</param>
-public sealed record ProcessDetails(long CreationTime, long CpuTime, long WorkingSet, string? ImagePath);
+public sealed record RawProcess(int Pid, int ParentPid, string Name, long CreationTime, long CpuTime, long WorkingSet);
 
 /// <summary>Inhalt von %USERPROFILE%\.claude\sessions\&lt;pid&gt;.json (nur die benötigten Felder).</summary>
 public sealed class SessionFile
