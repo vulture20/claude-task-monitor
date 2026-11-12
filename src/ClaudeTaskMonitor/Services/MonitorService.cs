@@ -3,7 +3,7 @@ using ClaudeTaskMonitor.Models;
 namespace ClaudeTaskMonitor.Services;
 
 /// <summary>Ein Abtastdurchlauf: Prozessbäume ermitteln und um Sitzungsdaten (Titel, Projekt, Thread) ergänzen.</summary>
-public sealed class MonitorService : IDisposable
+public sealed class MonitorService : ISessionSource
 {
     private readonly ProcessScanner _scanner;
     private readonly SessionMetadataResolver _metadata;

@@ -22,10 +22,13 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        _settings = AppSettings.Load();
+        // --demo: feste Beispieldaten statt echter Prozesse, z. B. für Screenshots. Einstellungen werden nicht gespeichert.
+        var demo = Environment.GetCommandLineArgs().Skip(1).Any(a => string.Equals(a, "--demo", StringComparison.OrdinalIgnoreCase));
+        _settings = demo ? new AppSettings { Persist = false, Width = 420, Height = 640 } : AppSettings.Load();
         ApplyBounds(_settings);
 
-        _viewModel = new MainViewModel(MonitorService.CreateDefault(), _settings);
+        ISessionSource source = demo ? new DemoSessionSource() : MonitorService.CreateDefault();
+        _viewModel = new MainViewModel(source, _settings, demo ? DemoSessionSource.ExpandedKey : null);
         DataContext = _viewModel;
         Loaded += (_, _) => _viewModel.Start();
         StateChanged += (_, _) => _viewModel.IsPaused = WindowState == WindowState.Minimized;
