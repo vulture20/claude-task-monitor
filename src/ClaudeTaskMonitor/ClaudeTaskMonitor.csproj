@@ -6,6 +6,18 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+
+    <Version>0.4.0</Version>
+    <Product>Claude Task Monitor</Product>
+    <Description>Stay-on-top-Fenster mit den von Claude gestarteten Prozessen, ihrer CPU-Last und der Zuordnung zu Projekt und Thread.</Description>
+    <Copyright>Lizenz: AGPL-3.0</Copyright>
+  </PropertyGroup>
+
+  <!-- Auslieferung als einzelne exe (Aufruf siehe README). Framework-abhängig braucht sie die
+       .NET 10 Desktop Runtime; als self-contained ist die Runtime enthalten. -->
+  <PropertyGroup Condition="'$(PublishSingleFile)' == 'true'">
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <DebugType>embedded</DebugType>
   </PropertyGroup>
 
 </Project>
