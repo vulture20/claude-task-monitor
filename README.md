@@ -1,6 +1,16 @@
+<p align="center">
+  <img src="assets/branding/png/logo-horizontal.png" alt="Claude Task Monitor" width="380">
+</p>
+
 # Claude Task Monitor
 
 Ein kleines Windows-Tool, das immer im Vordergrund bleibt (Stay-on-top). Es zeigt die Prozesse, die Claude gerade angestoßen hat, mit ihrer CPU-Last an. Erfasst werden die Claude-Desktop-App (auch Cowork und Remote Control) und Claude Code. Die Prozesse sind nach Claude-Projekt und Sitzung gruppiert. So sieht man auf einen Blick, welcher Claude-Thread gerade welche Last erzeugt, etwa einen Build, Tests oder ein hängendes Skript.
+
+<p align="center">
+  <img src="docs/screenshot.png" alt="Fenster von Claude Task Monitor mit mehreren Sitzungen in zwei Projekten, eine Karte mit aufgeklapptem Prozessbaum" width="420">
+</p>
+
+<sub>Der Screenshot zeigt erfundene Beispieldaten aus dem Demo-Modus (siehe [Demo-Modus](#demo-modus)).</sub>
 
 ## Installation
 
@@ -27,6 +37,10 @@ Unter [Releases](../../releases) liegt `ClaudeTaskMonitor.exe` als einzelne Date
 - Die CPU-Last ist auf alle Kerne bezogen: 100 % heißt, alle Kerne sind voll ausgelastet.
 
 Position, Größe, „Immer im Vordergrund“ und das Intervall werden in `%APPDATA%\ClaudeTaskMonitor\settings.json` gespeichert.
+
+### Demo-Modus
+
+`ClaudeTaskMonitor.exe --demo` zeigt erfundene Sitzungen, Projekte und Prozesse statt der echten. Das Tool liest dann weder Prozesse noch Dateien von Claude und speichert keine Einstellungen. Gedacht ist das für Screenshots und Vorführungen, ohne eigene Projektnamen, Pfade oder Thread-IDs preiszugeben.
 
 ## Funktionsweise
 
@@ -89,7 +103,7 @@ Ein Tag `v*` (z. B. `v0.4.0`) startet den Workflow `.github/workflows/release.ym
 |---|---|
 | `src/ClaudeTaskMonitor/Native` | Win32-/NT-Aufrufe (Prozessliste, Pfad, Kommandozeile, dunkle Titelleiste) |
 | `src/ClaudeTaskMonitor/Models` | Datentypen (Sitzungsdatei, Prozess, Sitzungsgruppe, Metadaten) |
-| `src/ClaudeTaskMonitor/Services` | `ProcessSnapshot` (Prozessliste), `SessionRegistry` (Sitzungsdateien), `ProcessScanner` (Erkennung, Baum, CPU-Last, Waisen), `SessionMetadataResolver` (Titel, Projekt, Thread), `MonitorService` (ein Durchlauf), `AppSettings` (Einstellungen) |
+| `src/ClaudeTaskMonitor/Services` | `ProcessSnapshot` (Prozessliste), `SessionRegistry` (Sitzungsdateien), `ProcessScanner` (Erkennung, Baum, CPU-Last, Waisen), `SessionMetadataResolver` (Titel, Projekt, Thread), `MonitorService` (ein Durchlauf), `DemoSessionSource` (Beispieldaten für `--demo`), `AppSettings` (Einstellungen) |
 | `src/ClaudeTaskMonitor/ViewModels` | MVVM ohne externe Pakete |
 
 ## Lizenz
