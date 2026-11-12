@@ -19,11 +19,12 @@ public enum UiLanguage
 /// </summary>
 public sealed class Loc : INotifyPropertyChanged
 {
-    public static Loc Instance { get; } = new();
-
     // Windows-Anzeigesprache beim Start, bevor die Thread-Kulturen umgestellt werden.
+    // Muss vor Instance stehen: statische Felder werden in Reihenfolge der Datei initialisiert.
     private static readonly CultureInfo SystemUiCulture = CultureInfo.CurrentUICulture;
     private static readonly CultureInfo SystemCulture = CultureInfo.CurrentCulture;
+
+    public static Loc Instance { get; } = new();
 
     private UiLanguage _setting = UiLanguage.Auto;
 
