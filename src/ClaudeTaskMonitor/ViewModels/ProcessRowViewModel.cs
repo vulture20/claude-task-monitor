@@ -11,6 +11,7 @@ public sealed class ProcessRowViewModel : ObservableObject
     private string _memoryText = string.Empty;
     private double _cpuPercent;
     private Thickness _indent;
+    private bool _isOrphan;
 
     public ProcessRowViewModel(ProcessSample sample)
     {
@@ -29,11 +30,15 @@ public sealed class ProcessRowViewModel : ObservableObject
     public string CpuText { get => _cpuText; private set => SetProperty(ref _cpuText, value); }
     public string MemoryText { get => _memoryText; private set => SetProperty(ref _memoryText, value); }
 
+    /// <summary>Elternprozess beendet; über Merkliste oder --sponsor zugeordnet.</summary>
+    public bool IsOrphan { get => _isOrphan; private set => SetProperty(ref _isOrphan, value); }
+
     public void Update(ProcessSample sample)
     {
         Indent = new Thickness(sample.Depth * IndentPerLevel, 0, 0, 0);
         CpuPercent = sample.CpuPercent;
         CpuText = Formatting.Cpu(sample.CpuPercent);
         MemoryText = Formatting.Memory(sample.WorkingSet);
+        IsOrphan = sample.IsOrphan;
     }
 }

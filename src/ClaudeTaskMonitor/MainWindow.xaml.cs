@@ -1,5 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Interop;
 using ClaudeTaskMonitor.Native;
 using ClaudeTaskMonitor.Services;
@@ -16,10 +17,24 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        _viewModel = new MainViewModel(new ProcessScanner(new SessionRegistry(SessionRegistry.DefaultDirectory)));
+        _viewModel = new MainViewModel(MonitorService.CreateDefault());
         DataContext = _viewModel;
         Loaded += (_, _) => _viewModel.Start();
         Closed += (_, _) => _viewModel.Dispose();
+    }
+
+    /// <summary>
+    /// Doppelklick auf eine Sitzungskarte öffnet den Thread im Browser. Der erste Klick hat die Karte bereits
+    /// auf- bzw. zugeklappt; das wird rückgängig gemacht, der zweite Klick erreicht den Umschalter nicht.
+    /// </summary>
+    private void SessionCard_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ClickCount != 2 || sender is not FrameworkElement { DataContext: SessionGroupViewModel session } || !session.CanOpenThread)
+            return;
+
+        e.Handled = true;
+        session.IsExpanded = !session.IsExpanded;
+        session.OpenThread();
     }
 
     protected override void OnSourceInitialized(EventArgs e)

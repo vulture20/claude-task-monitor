@@ -25,20 +25,31 @@
                     <ColumnDefinition Width="58" />
                     <ColumnDefinition Width="62" />
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Margin="{Binding Indent}" Text="{Binding Name}" TextTrimming="CharacterEllipsis"
-                           Foreground="{StaticResource TextSecondary}" />
+                <!-- Der Name wird gekürzt, die Kennzeichnung „verwaist“ bleibt immer sichtbar. -->
+                <Grid Grid.Column="0" Margin="{Binding Indent}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="{Binding Name}" TextTrimming="CharacterEllipsis" Foreground="{StaticResource TextSecondary}" />
+                    <TextBlock Grid.Column="1" Text="verwaist" Margin="4,0,0,0" FontSize="11" FontStyle="Italic" Foreground="{StaticResource StatusWaiting}"
+                               ToolTip="Elternprozess beendet; über die Merkliste oder --sponsor dieser Sitzung zugeordnet"
+                               Visibility="{Binding IsOrphan, Converter={StaticResource BoolToVisibility}}" />
+                </Grid>
                 <TextBlock Grid.Column="1" Text="{Binding Pid}" HorizontalAlignment="Right" Foreground="{StaticResource TextMuted}" />
                 <TextBlock Grid.Column="2" Text="{Binding CpuText}" HorizontalAlignment="Right" />
                 <TextBlock Grid.Column="3" Text="{Binding MemoryText}" HorizontalAlignment="Right" Foreground="{StaticResource TextSecondary}" />
             </Grid>
         </DataTemplate>
 
-        <!-- Eine Sitzung (Wurzelprozess samt Nachfahren) -->
+        <!-- Eine Sitzung (Wurzelprozess samt Nachfahren); Doppelklick öffnet den Thread -->
         <DataTemplate x:Key="SessionGroupTemplate" DataType="{x:Type vm:SessionGroupViewModel}">
             <Border Margin="8,0,8,6" Background="{StaticResource CardBackground}" BorderBrush="{StaticResource CardBorder}"
-                    BorderThickness="1" CornerRadius="5">
+                    BorderThickness="1" CornerRadius="5"
+                    PreviewMouseLeftButtonDown="SessionCard_PreviewMouseLeftButtonDown">
                 <StackPanel>
-                    <ToggleButton Style="{StaticResource GroupHeaderToggle}" IsChecked="{Binding IsExpanded}" ToolTip="{Binding ToolTip}">
+                    <ToggleButton Style="{StaticResource GroupHeaderToggle}" IsChecked="{Binding IsExpanded}" ToolTip="{Binding ToolTip}"
+                                  AutomationProperties.HelpText="{Binding ThreadUrl}">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="16" />
@@ -60,7 +71,7 @@
                             </TextBlock>
 
                             <StackPanel Grid.Column="1" Margin="0,0,8,0">
-                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="{Binding Headline}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                                 <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
                                     <Ellipse Width="7" Height="7" Margin="0,0,5,0" VerticalAlignment="Center">
                                         <Ellipse.Style>
@@ -80,9 +91,13 @@
                                             </Style>
                                         </Ellipse.Style>
                                     </Ellipse>
-                                    <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource TextSecondary}" TextTrimming="CharacterEllipsis" />
-                                    <TextBlock Text=" · " Foreground="{StaticResource TextMuted}" />
-                                    <TextBlock Text="{Binding ProcessCountText}" Foreground="{StaticResource TextMuted}" />
+                                    <TextBlock Text="{Binding StatusText}" FontSize="11" Foreground="{StaticResource TextSecondary}" TextTrimming="CharacterEllipsis" />
+                                    <StackPanel Orientation="Horizontal" Visibility="{Binding CanOpenThread, Converter={StaticResource BoolToVisibility}}">
+                                        <TextBlock Text=" · " FontSize="11" Foreground="{StaticResource TextMuted}" />
+                                        <TextBlock Text="{Binding ThreadText}" FontSize="11" Foreground="{StaticResource TextMuted}" />
+                                    </StackPanel>
+                                    <TextBlock Text=" · " FontSize="11" Foreground="{StaticResource TextMuted}" />
+                                    <TextBlock Text="{Binding ProcessCountText}" FontSize="11" Foreground="{StaticResource TextMuted}" />
                                 </StackPanel>
                             </StackPanel>
 
@@ -113,6 +128,18 @@
                 </StackPanel>
             </Border>
         </DataTemplate>
+
+        <!-- Ein Projekt-Abschnitt mit Überschrift -->
+        <DataTemplate x:Key="ProjectSectionTemplate" DataType="{x:Type vm:ProjectSectionViewModel}">
+            <StackPanel Margin="0,0,0,4">
+                <Grid Margin="14,4,18,4">
+                    <TextBlock Text="{Binding Title}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Accent}"
+                               TextTrimming="CharacterEllipsis" Margin="0,0,60,0" />
+                    <TextBlock Text="{Binding CpuText}" FontSize="11" Foreground="{StaticResource TextMuted}" HorizontalAlignment="Right" />
+                </Grid>
+                <ItemsControl ItemsSource="{Binding Sessions}" ItemTemplate="{StaticResource SessionGroupTemplate}" />
+            </StackPanel>
+        </DataTemplate>
     </Window.Resources>
 
     <Grid>
@@ -121,8 +148,8 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,8,0,2">
-            <ItemsControl ItemsSource="{Binding Groups}" ItemTemplate="{StaticResource SessionGroupTemplate}" />
+        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,4,0,2">
+            <ItemsControl ItemsSource="{Binding Sections}" ItemTemplate="{StaticResource ProjectSectionTemplate}" />
         </ScrollViewer>
 
         <TextBlock Grid.Row="0" Text="Keine laufenden Claude-Sitzungen gefunden."
