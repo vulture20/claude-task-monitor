@@ -129,6 +129,10 @@ public sealed class Loc : INotifyPropertyChanged
         ["MenuInterval5"] = ("5 Sekunden", "5 seconds"),
         ["MenuLanguage"] = ("Sprache", "Language"),
         ["MenuLanguageAuto"] = ("Automatisch (Windows)", "Automatic (Windows)"),
+        ["MenuOpacity"] = ("Transparenz", "Transparency"),
+        ["MenuOpacityOpaque"] = ("100 % (keine Transparenz)", "100% (no transparency)"),
+        ["MenuOpacityFormat"] = ("{0} %", "{0}%"),
+        ["MenuOpacityHint"] = ("Strg + Mausrad: Deckkraft ändern", "Ctrl + mouse wheel: change opacity"),
         ["MenuExit"] = ("Beenden", "Exit"),
 
         // Fenster

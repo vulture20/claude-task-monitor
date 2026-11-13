@@ -4,6 +4,26 @@ Alle nennenswerten Änderungen an Claude Task Monitor. Das Format folgt [Keep a 
 
 All notable changes to Claude Task Monitor. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] – 2026-11-13
+
+### Neu
+
+- Wählbare Transparenz des ganzen Fensters von 100 % (Standard, keine Transparenz) bis 30 % in 10er-Schritten ([#12](https://github.com/vulture20/claude-task-monitor/issues/12)):
+  - Untermenü „Transparenz“ im Kontextmenü.
+  - Strg + Mausrad über dem Fenster ändert die Deckkraft schrittweise.
+  - Solange die Maus über dem Fenster ist, wird es voll deckend angezeigt.
+  - Klicks gehen nicht durch das Fenster; Rahmen und Titelleiste bleiben erhalten.
+  - Gespeichert als `Opacity` in `settings.json`; `--opacity 30-100` legt den Wert für einen Start fest.
+
+### Added
+
+- Selectable transparency of the whole window from 100% (default, no transparency) down to 30% in steps of 10 ([#12](https://github.com/vulture20/claude-task-monitor/issues/12)):
+  - "Transparency" submenu in the context menu.
+  - Ctrl + mouse wheel over the window changes the opacity step by step.
+  - While the mouse is over the window, it is shown fully opaque.
+  - Clicks do not pass through the window; frame and title bar are kept.
+  - Saved as `Opacity` in `settings.json`; `--opacity 30-100` sets the value for one launch.
+
 ## [1.0.0] – 2026-11-12
 
 Erstes Release. / First release.
@@ -34,4 +54,5 @@ Erstes Release. / First release.
 - Custom app icon, dark design.
 - Two packages per release: framework-dependent (requires the .NET 10 Desktop Runtime) and self-contained (no requirements), each as a ZIP with README, CHANGELOG and LICENSE, plus `SHA256SUMS.txt`.
 
+[1.1.0]: https://github.com/vulture20/claude-task-monitor/releases/tag/v1.1.0
 [1.0.0]: https://github.com/vulture20/claude-task-monitor/releases/tag/v1.0.0

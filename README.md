@@ -43,12 +43,13 @@ Eine Installation ist nicht nötig: ZIP entpacken und die exe starten. Die Prüf
   - Thread-Link kopieren
   - Immer im Vordergrund an/aus
   - Aktualisieren alle 1 / 2 / 5 Sekunden (Standard: 2 s)
+  - Transparenz: 100 % (Standard, keine Transparenz) bis 30 % in 10er-Schritten
   - Sprache: Automatisch / Deutsch / English
   - Beenden
 - **Minimiert** tastet das Tool nicht ab und braucht keine CPU.
 - Die CPU-Last ist auf alle Kerne bezogen: 100 % heißt, alle Kerne sind voll ausgelastet.
 
-Position, Größe, „Immer im Vordergrund“, das Intervall und die Sprache werden in `%APPDATA%\ClaudeTaskMonitor\settings.json` gespeichert.
+Position, Größe, „Immer im Vordergrund“, das Intervall, die Transparenz und die Sprache werden in `%APPDATA%\ClaudeTaskMonitor\settings.json` gespeichert.
 
 ### Sprache
 
@@ -56,6 +57,16 @@ Die Oberfläche gibt es auf Deutsch und Englisch. Standardmäßig richtet sie si
 
 - **Kontextmenü → Sprache** stellt sofort um, ohne Neustart. Die Wahl wird gespeichert.
 - **`--lang de`**, **`--lang en`** oder **`--lang auto`** (auch `--lang=en`) legt die Sprache für diesen Start fest und hat Vorrang vor der gespeicherten Wahl.
+
+### Transparenz
+
+Das ganze Fenster samt Text, Rahmen und Titelleiste lässt sich durchscheinend machen, z. B. damit es über einem anderen Programm weniger stört. Standard ist 100 %, also keine Transparenz.
+
+- **Kontextmenü → Transparenz** wählt eine Stufe von 100 % bis 30 % in 10er-Schritten. Die Wahl wird gespeichert.
+- **Strg + Mausrad** über dem Fenster ändert die Deckkraft um je 10 %. Die neue Stufe ist kurz zu sehen.
+- **Maus über dem Fenster** (auch über der Titelleiste): Das Fenster wird voll deckend, beim Verlassen kehrt die gewählte Transparenz zurück.
+- Mausklicks gehen nicht durch das Fenster hindurch, das Kontextmenü bleibt immer erreichbar.
+- **`--opacity 70`** (auch `--opacity=70` oder `70%`) legt die Deckkraft für diesen Start fest und hat Vorrang vor der gespeicherten Wahl. Werte werden auf 30–100 begrenzt und auf 10er-Schritte gerundet.
 
 ### Demo-Modus
 
@@ -171,12 +182,13 @@ No installation is needed: unzip and run the exe. Checksums are in `SHA256SUMS.t
   - Copy thread link
   - Always on top on/off
   - Refresh every 1 / 2 / 5 seconds (default: 2 s)
+  - Transparency: 100% (default, no transparency) down to 30% in steps of 10
   - Language: Automatic / Deutsch / English
   - Exit
 - **While minimized** the tool does not scan and uses no CPU.
 - CPU load is relative to all cores: 100 % means all cores are fully busy.
 
-Position, size, "Always on top", the interval and the language are saved in `%APPDATA%\ClaudeTaskMonitor\settings.json`.
+Position, size, "Always on top", the interval, the transparency and the language are saved in `%APPDATA%\ClaudeTaskMonitor\settings.json`.
 
 ### Language
 
@@ -184,6 +196,16 @@ The UI is available in German and English. By default it follows the Windows dis
 
 - **Context menu → Language** switches immediately, without a restart. The choice is saved.
 - **`--lang de`**, **`--lang en`** or **`--lang auto`** (also `--lang=en`) sets the language for this launch and takes precedence over the saved choice.
+
+### Transparency
+
+The whole window, including text, frame and title bar, can be made see-through, for example so it gets less in the way on top of another program. The default is 100%, i.e. no transparency.
+
+- **Context menu → Transparency** picks a level from 100% down to 30% in steps of 10. The choice is saved.
+- **Ctrl + mouse wheel** over the window changes the opacity by 10% per step. The new level is shown briefly.
+- **Mouse over the window** (title bar included): the window becomes fully opaque and returns to the chosen transparency when the mouse leaves.
+- Mouse clicks never pass through the window, so the context menu is always reachable.
+- **`--opacity 70`** (also `--opacity=70` or `70%`) sets the opacity for this launch and takes precedence over the saved choice. Values are limited to 30–100 and rounded to steps of 10.
 
 ### Demo mode
 
