@@ -63,6 +63,15 @@ internal static class NativeMethods
     public const int WS_EX_LAYERED = 0x00080000;
     public const uint LWA_ALPHA = 0x00000002;
     public const int WM_NCMOUSEMOVE = 0x00A0;
+    public const int WM_STYLECHANGING = 0x007C;
+
+    /// <summary>lParam von WM_STYLECHANGING.</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    public struct STYLESTRUCT
+    {
+        public uint StyleOld;
+        public uint StyleNew;
+    }
 
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW", SetLastError = true)]
     public static extern IntPtr GetWindowLongPtr(IntPtr hWnd, int nIndex);
