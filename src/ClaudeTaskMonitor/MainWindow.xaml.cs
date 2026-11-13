@@ -84,7 +84,8 @@ public partial class MainWindow : Window
     /// <summary>
     /// Mausbewegung über Titelleiste und Rahmen zählt ebenfalls als Hover.
     /// WPF entfernt WS_EX_LAYERED bei Fenstern ohne AllowsTransparency wieder (HwndTarget gleicht den Stil
-    /// beim Rendern ab). Solange eine Transparenz gewählt ist, wird das Bit in WM_STYLECHANGING festgehalten.
+    /// beim Rendern ab, und zwar erst nach den öffentlichen HwndSource-Hooks). Solange eine Transparenz gewählt
+    /// ist, wird das Bit in WM_STYLECHANGING festgehalten und die Nachricht als behandelt markiert.
     /// </summary>
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
@@ -99,10 +100,9 @@ public partial class MainWindow : Window
             {
                 styles.StyleNew |= NativeMethods.WS_EX_LAYERED;
                 Marshal.StructureToPtr(styles, lParam, false);
-                // Das Bit war kurz weg: Alpha neu setzen, sobald der Stil angekommen ist.
-                _appliedAlpha = null;
-                Dispatcher.BeginInvoke(ApplyOpacity, DispatcherPriority.Render);
             }
+            // WPF streicht das Bit erst nach den öffentlichen Hooks; handled beendet die Kette vorher.
+            handled = true;
         }
         return IntPtr.Zero;
     }
