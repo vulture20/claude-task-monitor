@@ -15,7 +15,9 @@
         Background="{StaticResource WindowBackground}"
         Foreground="{StaticResource TextPrimary}"
         FontFamily="Segoe UI" FontSize="12"
-        UseLayoutRounding="True" TextOptions.TextFormattingMode="Display">
+        UseLayoutRounding="True" TextOptions.TextFormattingMode="Display"
+        PreviewMouseWheel="Window_PreviewMouseWheel"
+        MouseEnter="Window_MouseEnter">
 
     <Window.Resources>
         <!-- Eine Prozesszeile innerhalb einer Sitzung -->
@@ -157,6 +159,10 @@
                     <MenuItem Header="{Binding [MenuInterval1], Source={x:Static loc:Loc.Instance}}" IsChecked="{Binding IsInterval1, Mode=OneWay}" Click="Interval_Click" Tag="1" />
                     <MenuItem Header="{Binding [MenuInterval2], Source={x:Static loc:Loc.Instance}}" IsChecked="{Binding IsInterval2, Mode=OneWay}" Click="Interval_Click" Tag="2" />
                     <MenuItem Header="{Binding [MenuInterval5], Source={x:Static loc:Loc.Instance}}" IsChecked="{Binding IsInterval5, Mode=OneWay}" Click="Interval_Click" Tag="5" />
+                </MenuItem>
+                <MenuItem x:Name="OpacityMenu" Header="{Binding [MenuOpacity], Source={x:Static loc:Loc.Instance}}" SubmenuOpened="OpacityMenu_SubmenuOpened">
+                    <!-- Wird beim Öffnen in MainWindow.xaml.cs mit den Stufen 100 … 30 % gefüllt. -->
+                    <MenuItem />
                 </MenuItem>
                 <MenuItem Header="{Binding [MenuLanguage], Source={x:Static loc:Loc.Instance}}">
                     <MenuItem Header="{Binding [MenuLanguageAuto], Source={x:Static loc:Loc.Instance}}" IsChecked="{Binding IsLanguageAuto, Mode=OneWay}" Click="Language_Click" Tag="auto" />

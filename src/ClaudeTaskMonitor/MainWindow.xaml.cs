@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
+using System.Windows.Threading;
 using ClaudeTaskMonitor.Localization;
 using ClaudeTaskMonitor.Native;
 using ClaudeTaskMonitor.Services;
@@ -20,6 +21,22 @@ public partial class MainWindow : Window
     /// <summary>Karte, auf der das Kontextmenü geöffnet wurde (für die Thread-Einträge).</summary>
     private SessionGroupViewModel? _menuSession;
 
+    /// <summary>Gewählte Deckkraft in Prozent (30–100). --opacity gilt nur für diesen Start, bis im Menü gewählt wird.</summary>
+    private int _opacity;
+
+    /// <summary>Maus über dem Fenster (Inhalt oder Titelleiste): dann voll deckend.</summary>
+    private bool _hover;
+
+    /// <summary>Nach Strg + Mausrad wird die neue Stufe kurz gezeigt, obwohl die Maus über dem Fenster ist.</summary>
+    private DateTime _previewUntil;
+
+    /// <summary>Prüft nur während Hover oder Vorschau, ob die Maus das Fenster verlassen hat.</summary>
+    private readonly DispatcherTimer _hoverTimer = new(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(200) };
+
+    private IntPtr _hwnd;
+    private bool _layered;
+    private byte? _appliedAlpha;
+
     public MainWindow()
     {
         var args = Environment.GetCommandLineArgs().Skip(1).ToArray();
@@ -31,6 +48,10 @@ public partial class MainWindow : Window
         var language = ParseLanguageArgument(args) ?? Loc.Parse(_settings.Language) ?? UiLanguage.Auto;
         Loc.Instance.SetLanguage(language);
 
+        // Transparenz: --opacity hat für diesen Start Vorrang vor der gespeicherten Wahl.
+        _opacity = ParseOpacityArgument(args) ?? _settings.Opacity;
+        _hoverTimer.Tick += (_, _) => UpdateHover();
+
         InitializeComponent();
         ApplyBounds(_settings);
 
@@ -40,7 +61,11 @@ public partial class MainWindow : Window
         Loaded += (_, _) => _viewModel.Start();
         StateChanged += (_, _) => _viewModel.IsPaused = WindowState == WindowState.Minimized;
         Closing += (_, _) => SaveBounds();
-        Closed += (_, _) => _viewModel.Dispose();
+        Closed += (_, _) =>
+        {
+            _hoverTimer.Stop();
+            _viewModel.Dispose();
+        };
     }
 
     protected override void OnSourceInitialized(EventArgs e)
@@ -50,6 +75,158 @@ public partial class MainWindow : Window
         var hwnd = new WindowInteropHelper(this).Handle;
         var enabled = 1;
         NativeMethods.DwmSetWindowAttribute(hwnd, DwmwaUseImmersiveDarkMode, ref enabled, Marshal.SizeOf<int>());
+
+        _hwnd = hwnd;
+        HwndSource.FromHwnd(hwnd)?.AddHook(WndProc);
+        ApplyOpacity();
+    }
+
+    /// <summary>Mausbewegung über Titelleiste und Rahmen zählt ebenfalls als Hover.</summary>
+    private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if (msg == NativeMethods.WM_NCMOUSEMOVE)
+            BeginHover();
+        return IntPtr.Zero;
+    }
+
+    // ---------- Transparenz ----------
+
+    /// <summary>
+    /// Setzt die Deckkraft des ganzen Fensters über ein Layered Window (WS_EX_LAYERED + LWA_ALPHA).
+    /// So bleiben Rahmen und Titelleiste erhalten; WPF-AllowsTransparency würde WindowStyle=None verlangen.
+    /// Bei 100 % wird der Layered-Stil wieder entfernt, das Fenster verhält sich dann wie ohne die Funktion.
+    /// Klicks gehen nie durch das Fenster (kein WS_EX_TRANSPARENT).
+    /// </summary>
+    private void ApplyOpacity()
+    {
+        if (_hwnd == IntPtr.Zero)
+            return;
+
+        if (_opacity >= AppSettings.MaxOpacity)
+        {
+            if (_layered)
+            {
+                var style = NativeMethods.GetWindowLongPtr(_hwnd, NativeMethods.GWL_EXSTYLE).ToInt64();
+                NativeMethods.SetWindowLongPtr(_hwnd, NativeMethods.GWL_EXSTYLE, new IntPtr(style & ~NativeMethods.WS_EX_LAYERED));
+                _layered = false;
+                _appliedAlpha = null;
+            }
+            return;
+        }
+
+        if (!_layered)
+        {
+            var style = NativeMethods.GetWindowLongPtr(_hwnd, NativeMethods.GWL_EXSTYLE).ToInt64();
+            NativeMethods.SetWindowLongPtr(_hwnd, NativeMethods.GWL_EXSTYLE, new IntPtr(style | NativeMethods.WS_EX_LAYERED));
+            _layered = true;
+            _appliedAlpha = null;
+        }
+
+        var effective = _hover && DateTime.UtcNow >= _previewUntil ? AppSettings.MaxOpacity : _opacity;
+        var alpha = (byte)Math.Round(255.0 * effective / AppSettings.MaxOpacity);
+        if (_appliedAlpha == alpha)
+            return;
+        NativeMethods.SetLayeredWindowAttributes(_hwnd, 0, alpha, NativeMethods.LWA_ALPHA);
+        _appliedAlpha = alpha;
+    }
+
+    /// <summary>Übernimmt eine neue Stufe aus Menü oder Mausrad und speichert sie.</summary>
+    private void SetOpacity(int percent)
+    {
+        percent = AppSettings.NormalizeOpacity(percent);
+        if (percent == _opacity)
+            return;
+        _opacity = percent;
+        _settings.Opacity = percent;
+        _settings.Save();
+        ApplyOpacity();
+    }
+
+    private void Window_MouseEnter(object sender, MouseEventArgs e) => BeginHover();
+
+    private void BeginHover()
+    {
+        if (!_hover)
+        {
+            _hover = true;
+            ApplyOpacity();
+        }
+        if (!_hoverTimer.IsEnabled)
+            _hoverTimer.Start();
+    }
+
+    /// <summary>
+    /// Fragt die Mausposition gegen das Fensterrechteck ab. Zuverlässiger als MouseLeave, das über der
+    /// Titelleiste und beim Öffnen des Kontextmenüs nicht passend feuert.
+    /// </summary>
+    private void UpdateHover()
+    {
+        var inside = _hwnd != IntPtr.Zero
+            && NativeMethods.GetCursorPos(out var p)
+            && NativeMethods.GetWindowRect(_hwnd, out var r)
+            && p.X >= r.Left && p.X < r.Right && p.Y >= r.Top && p.Y < r.Bottom;
+        _hover = inside;
+        ApplyOpacity();
+        if (!inside && DateTime.UtcNow >= _previewUntil)
+            _hoverTimer.Stop();
+    }
+
+    /// <summary>Strg + Mausrad: Deckkraft in 10er-Schritten ändern, die neue Stufe kurz anzeigen.</summary>
+    private void Window_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        if ((Keyboard.Modifiers & ModifierKeys.Control) == 0 || e.Delta == 0)
+            return;
+        e.Handled = true;
+        _previewUntil = DateTime.UtcNow.AddMilliseconds(1200);
+        _appliedAlpha = null;
+        SetOpacity(_opacity + Math.Sign(e.Delta) * AppSettings.OpacityStep);
+        ApplyOpacity();
+        if (!_hoverTimer.IsEnabled)
+            _hoverTimer.Start();
+    }
+
+    private void OpacityMenu_SubmenuOpened(object sender, RoutedEventArgs e)
+    {
+        if (!ReferenceEquals(e.OriginalSource, OpacityMenu))
+            return;
+        OpacityMenu.Items.Clear();
+        for (var percent = AppSettings.MaxOpacity; percent >= AppSettings.MinOpacity; percent -= AppSettings.OpacityStep)
+        {
+            var item = new MenuItem
+            {
+                Header = percent == AppSettings.MaxOpacity ? Loc.Instance["MenuOpacityOpaque"] : Loc.F("MenuOpacityFormat", percent),
+                IsChecked = percent == _opacity,
+                Tag = percent,
+            };
+            item.Click += OpacityItem_Click;
+            OpacityMenu.Items.Add(item);
+        }
+        OpacityMenu.Items.Add(new Separator());
+        OpacityMenu.Items.Add(new MenuItem { Header = Loc.Instance["MenuOpacityHint"], IsEnabled = false });
+    }
+
+    private void OpacityItem_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem { Tag: int percent })
+            SetOpacity(percent);
+    }
+
+    /// <summary>Liest <c>--opacity 70</c> bzw. <c>--opacity=70</c> (auch mit %); ungültige Werte werden ignoriert.</summary>
+    private static int? ParseOpacityArgument(string[] args)
+    {
+        string? value = null;
+        for (var i = 0; i < args.Length; i++)
+        {
+            var arg = args[i];
+            if (arg.StartsWith("--opacity=", StringComparison.OrdinalIgnoreCase))
+                value = arg["--opacity=".Length..];
+            else if (string.Equals(arg, "--opacity", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
+                value = args[i + 1];
+        }
+
+        if (value is null || !int.TryParse(value.Trim().TrimEnd('%').Trim(), out var percent))
+            return null;
+        return AppSettings.NormalizeOpacity(percent);
     }
 
     // ---------- Fensterposition ----------
