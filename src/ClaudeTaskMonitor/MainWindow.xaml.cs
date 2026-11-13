@@ -81,11 +81,29 @@ public partial class MainWindow : Window
         ApplyOpacity();
     }
 
-    /// <summary>Mausbewegung über Titelleiste und Rahmen zählt ebenfalls als Hover.</summary>
+    /// <summary>
+    /// Mausbewegung über Titelleiste und Rahmen zählt ebenfalls als Hover.
+    /// WPF entfernt WS_EX_LAYERED bei Fenstern ohne AllowsTransparency wieder (HwndTarget gleicht den Stil
+    /// beim Rendern ab). Solange eine Transparenz gewählt ist, wird das Bit in WM_STYLECHANGING festgehalten.
+    /// </summary>
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
         if (msg == NativeMethods.WM_NCMOUSEMOVE)
+        {
             BeginHover();
+        }
+        else if (msg == NativeMethods.WM_STYLECHANGING && wParam.ToInt64() == NativeMethods.GWL_EXSTYLE && _layered)
+        {
+            var styles = Marshal.PtrToStructure<NativeMethods.STYLESTRUCT>(lParam);
+            if ((styles.StyleNew & NativeMethods.WS_EX_LAYERED) == 0)
+            {
+                styles.StyleNew |= NativeMethods.WS_EX_LAYERED;
+                Marshal.StructureToPtr(styles, lParam, false);
+                // Das Bit war kurz weg: Alpha neu setzen, sobald der Stil angekommen ist.
+                _appliedAlpha = null;
+                Dispatcher.BeginInvoke(ApplyOpacity, DispatcherPriority.Render);
+            }
+        }
         return IntPtr.Zero;
     }
 
@@ -106,20 +124,20 @@ public partial class MainWindow : Window
         {
             if (_layered)
             {
-                var style = NativeMethods.GetWindowLongPtr(_hwnd, NativeMethods.GWL_EXSTYLE).ToInt64();
-                NativeMethods.SetWindowLongPtr(_hwnd, NativeMethods.GWL_EXSTYLE, new IntPtr(style & ~NativeMethods.WS_EX_LAYERED));
                 _layered = false;
                 _appliedAlpha = null;
+                var style = NativeMethods.GetWindowLongPtr(_hwnd, NativeMethods.GWL_EXSTYLE).ToInt64();
+                NativeMethods.SetWindowLongPtr(_hwnd, NativeMethods.GWL_EXSTYLE, new IntPtr(style & ~NativeMethods.WS_EX_LAYERED));
             }
             return;
         }
 
-        if (!_layered)
+        var current = NativeMethods.GetWindowLongPtr(_hwnd, NativeMethods.GWL_EXSTYLE).ToInt64();
+        if (!_layered || (current & NativeMethods.WS_EX_LAYERED) == 0)
         {
-            var style = NativeMethods.GetWindowLongPtr(_hwnd, NativeMethods.GWL_EXSTYLE).ToInt64();
-            NativeMethods.SetWindowLongPtr(_hwnd, NativeMethods.GWL_EXSTYLE, new IntPtr(style | NativeMethods.WS_EX_LAYERED));
             _layered = true;
             _appliedAlpha = null;
+            NativeMethods.SetWindowLongPtr(_hwnd, NativeMethods.GWL_EXSTYLE, new IntPtr(current | NativeMethods.WS_EX_LAYERED));
         }
 
         var effective = _hover && DateTime.UtcNow >= _previewUntil ? AppSettings.MaxOpacity : _opacity;
