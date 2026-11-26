@@ -4,7 +4,7 @@ Alle nennenswerten Änderungen an Claude Task Monitor. Das Format folgt [Keep a 
 
 All notable changes to Claude Task Monitor. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.2.0] – 2026-11-26
 
 ### Neu
 
@@ -72,5 +72,6 @@ Erstes Release. / First release.
 - Custom app icon, dark design.
 - Two packages per release: framework-dependent (requires the .NET 10 Desktop Runtime) and self-contained (no requirements), each as a ZIP with README, CHANGELOG and LICENSE, plus `SHA256SUMS.txt`.
 
+[1.2.0]: https://github.com/vulture20/claude-task-monitor/releases/tag/v1.2.0
 [1.1.0]: https://github.com/vulture20/claude-task-monitor/releases/tag/v1.1.0
 [1.0.0]: https://github.com/vulture20/claude-task-monitor/releases/tag/v1.0.0
