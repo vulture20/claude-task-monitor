@@ -4,11 +4,11 @@ Alle nennenswerten Änderungen an Claude Task Monitor. Das Format folgt [Keep a 
 
 All notable changes to Claude Task Monitor. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.2.0] – 2026-11-26
 
 ### Neu
 
-- Filter im Kontextmenü, die ganze Sitzungen bzw. Threads ausblenden und zusammenwirken:
+- Filter im Kontextmenü ([#15](https://github.com/vulture20/claude-task-monitor/pull/15)), die ganze Sitzungen bzw. Threads ausblenden und zusammenwirken:
   - Aktivität: aktive und inaktive / nur aktive / nur inaktive. Aktiv heißt, Claude arbeitet gerade.
   - Letzte Aktivität: beliebig / heute / ab gestern / ab vor 3 Tagen / ab vor einer Woche, jeweils ab Mitternacht Ortszeit.
   - Hinweis „N ausgeblendet“ in der Fußzeile und „Filter zurücksetzen“.
@@ -16,7 +16,7 @@ All notable changes to Claude Task Monitor. The format follows [Keep a Changelog
 
 ### Added
 
-- Context menu filters that hide whole sessions or threads and work together:
+- Context menu filters ([#15](https://github.com/vulture20/claude-task-monitor/pull/15)) that hide whole sessions or threads and work together:
   - Activity: active and inactive / active only / inactive only. Active means Claude is working right now.
   - Last activity: any / today / since yesterday / since 3 days ago / since a week ago, each from local midnight.
   - "N hidden" note in the footer and "Reset filter".
@@ -72,5 +72,6 @@ Erstes Release. / First release.
 - Custom app icon, dark design.
 - Two packages per release: framework-dependent (requires the .NET 10 Desktop Runtime) and self-contained (no requirements), each as a ZIP with README, CHANGELOG and LICENSE, plus `SHA256SUMS.txt`.
 
+[1.2.0]: https://github.com/vulture20/claude-task-monitor/releases/tag/v1.2.0
 [1.1.0]: https://github.com/vulture20/claude-task-monitor/releases/tag/v1.1.0
 [1.0.0]: https://github.com/vulture20/claude-task-monitor/releases/tag/v1.0.0
