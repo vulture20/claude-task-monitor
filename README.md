@@ -63,7 +63,7 @@ Die Oberfläche gibt es auf Deutsch und Englisch. Standardmäßig richtet sie si
 
 **Kontextmenü → Filter** blendet ganze Sitzungen bzw. Threads aus. Beide Filter wirken zusammen, z. B. „Nur inaktive“ und „Ab gestern“.
 
-- **Aktivität:** Aktive und inaktive / Nur aktive / Nur inaktive. Aktiv ist eine Sitzung, solange Claude daran arbeitet oder auf eine Antwort wartet. „Bereit“ und „beendet“ gelten als inaktiv. Ein laufender Prozess allein unterscheidet nicht, denn jede angezeigte Sitzung hat mindestens einen.
+- **Aktivität:** Aktive und inaktive / Nur aktive / Nur inaktive. Aktiv ist eine Sitzung, solange Claude gerade daran arbeitet. „Wartet“, „bereit“, „beendet“ und „ohne Sitzungsdatei“ gelten als inaktiv. Ein laufender Prozess allein unterscheidet nicht, denn jede angezeigte Sitzung hat mindestens einen.
 - **Letzte Aktivität:** Beliebig / heute / ab gestern / ab vor 3 Tagen / ab vor einer Woche. Die Angabe ist eine Untergrenze: „Ab gestern“ zeigt alles von gestern und heute und blendet Älteres aus. Ein Tag beginnt um Mitternacht Ortszeit. Aktive Sitzungen zählen als „jetzt“, sonst gilt die letzte Aktivität laut Desktop-App bzw. der Start der Sitzung.
 - In der Fußzeile steht, wie viele Sitzungen ausgeblendet sind, z. B. „3 ausgeblendet“. „Filter zurücksetzen“ zeigt wieder alles.
 - Die Wahl wird gespeichert (`FilterActivity`, `FilterTime` in `settings.json`).
@@ -212,7 +212,7 @@ The UI is available in German and English. By default it follows the Windows dis
 
 **Context menu → Filter** hides whole sessions or threads. Both filters work together, e.g. "Inactive only" and "Since yesterday".
 
-- **Activity:** Active and inactive / Active only / Inactive only. A session is active while Claude is working on it or waiting for an answer. "Ready" and "ended" count as inactive. A running process alone does not tell them apart, because every listed session has at least one.
+- **Activity:** Active and inactive / Active only / Inactive only. A session is active while Claude is working on it right now. "Waiting", "ready", "ended" and "no session file" count as inactive. A running process alone does not tell them apart, because every listed session has at least one.
 - **Last activity:** Any / today / since yesterday / since 3 days ago / since a week ago. The choice is a lower bound: "Since yesterday" shows everything from yesterday and today and hides anything older. A day starts at local midnight. Active sessions count as "now"; otherwise the last activity reported by the desktop app or the session start is used.
 - The footer shows how many sessions are hidden, e.g. "3 hidden". "Reset filter" shows everything again.
 - The choice is saved (`FilterActivity`, `FilterTime` in `settings.json`).

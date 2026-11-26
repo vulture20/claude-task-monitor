@@ -143,7 +143,7 @@ public sealed class Loc : INotifyPropertyChanged
         ["MenuFilterThreeDays"] = ("Ab vor 3 Tagen", "Since 3 days ago"),
         ["MenuFilterWeek"] = ("Ab vor einer Woche", "Since a week ago"),
         ["MenuFilterReset"] = ("Filter zurücksetzen", "Reset filter"),
-        ["MenuFilterHint"] = ("Aktiv: Claude arbeitet oder wartet", "Active: Claude is working or waiting"),
+        ["MenuFilterHint"] = ("Aktiv: Claude arbeitet gerade", "Active: Claude is working right now"),
         ["MenuExit"] = ("Beenden", "Exit"),
 
         // Fenster

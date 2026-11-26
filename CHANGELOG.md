@@ -9,7 +9,7 @@ All notable changes to Claude Task Monitor. The format follows [Keep a Changelog
 ### Neu
 
 - Filter im Kontextmenü, die ganze Sitzungen bzw. Threads ausblenden und zusammenwirken:
-  - Aktivität: aktive und inaktive / nur aktive / nur inaktive. Aktiv heißt, Claude arbeitet oder wartet.
+  - Aktivität: aktive und inaktive / nur aktive / nur inaktive. Aktiv heißt, Claude arbeitet gerade.
   - Letzte Aktivität: beliebig / heute / ab gestern / ab vor 3 Tagen / ab vor einer Woche, jeweils ab Mitternacht Ortszeit.
   - Hinweis „N ausgeblendet“ in der Fußzeile und „Filter zurücksetzen“.
   - Gespeichert als `FilterActivity` und `FilterTime` in `settings.json`.
@@ -17,7 +17,7 @@ All notable changes to Claude Task Monitor. The format follows [Keep a Changelog
 ### Added
 
 - Context menu filters that hide whole sessions or threads and work together:
-  - Activity: active and inactive / active only / inactive only. Active means Claude is working or waiting.
+  - Activity: active and inactive / active only / inactive only. Active means Claude is working right now.
   - Last activity: any / today / since yesterday / since 3 days ago / since a week ago, each from local midnight.
   - "N hidden" note in the footer and "Reset filter".
   - Saved as `FilterActivity` and `FilterTime` in `settings.json`.

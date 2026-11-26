@@ -24,11 +24,11 @@ public enum ActivityFilter
 public static class SessionFilter
 {
     /// <summary>
-    /// Aktiv: Claude arbeitet an der Sitzung oder wartet auf eine Antwort (busy, waiting) bzw. der Status ist mangels
-    /// Sitzungsdatei unbekannt. Inaktiv: bereit (idle) oder beendet (nur noch verwaiste Prozesse).
+    /// Aktiv: Claude arbeitet gerade an der Sitzung (busy). Inaktiv: alles andere, also bereit, wartet auf eine Antwort,
+    /// beendet (nur noch verwaiste Prozesse) oder ohne Sitzungsdatei (Status unbekannt).
     /// Ein laufender Prozess allein unterscheidet nicht, denn jede angezeigte Sitzung hat mindestens einen.
     /// </summary>
-    public static bool IsActive(SessionGroup group) => group.Status is not ("idle" or "ended");
+    public static bool IsActive(SessionGroup group) => group.Status == "busy";
 
     /// <summary>
     /// Zeitpunkt der letzten Aktivität: jetzt, solange die Sitzung aktiv ist, sonst lastActivityAt der Desktop-App,
