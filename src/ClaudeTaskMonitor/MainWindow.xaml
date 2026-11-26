@@ -160,6 +160,20 @@
                     <MenuItem Header="{Binding [MenuInterval2], Source={x:Static loc:Loc.Instance}}" IsChecked="{Binding IsInterval2, Mode=OneWay}" Click="Interval_Click" Tag="2" />
                     <MenuItem Header="{Binding [MenuInterval5], Source={x:Static loc:Loc.Instance}}" IsChecked="{Binding IsInterval5, Mode=OneWay}" Click="Interval_Click" Tag="5" />
                 </MenuItem>
+                <MenuItem x:Name="FilterMenu" Header="{Binding [MenuFilter], Source={x:Static loc:Loc.Instance}}" SubmenuOpened="FilterMenu_SubmenuOpened">
+                    <MenuItem x:Name="FilterActivityAll" Header="{Binding [MenuFilterActivityAll], Source={x:Static loc:Loc.Instance}}" Click="ActivityFilter_Click" Tag="all" />
+                    <MenuItem x:Name="FilterActive" Header="{Binding [MenuFilterActive], Source={x:Static loc:Loc.Instance}}" Click="ActivityFilter_Click" Tag="active" />
+                    <MenuItem x:Name="FilterInactive" Header="{Binding [MenuFilterInactive], Source={x:Static loc:Loc.Instance}}" Click="ActivityFilter_Click" Tag="inactive" />
+                    <Separator />
+                    <MenuItem x:Name="FilterTimeAll" Header="{Binding [MenuFilterTimeAll], Source={x:Static loc:Loc.Instance}}" Click="TimeFilter_Click" Tag="all" />
+                    <MenuItem x:Name="FilterToday" Header="{Binding [MenuFilterToday], Source={x:Static loc:Loc.Instance}}" Click="TimeFilter_Click" Tag="today" />
+                    <MenuItem x:Name="FilterYesterday" Header="{Binding [MenuFilterYesterday], Source={x:Static loc:Loc.Instance}}" Click="TimeFilter_Click" Tag="yesterday" />
+                    <MenuItem x:Name="FilterThreeDays" Header="{Binding [MenuFilterThreeDays], Source={x:Static loc:Loc.Instance}}" Click="TimeFilter_Click" Tag="3days" />
+                    <MenuItem x:Name="FilterWeek" Header="{Binding [MenuFilterWeek], Source={x:Static loc:Loc.Instance}}" Click="TimeFilter_Click" Tag="week" />
+                    <Separator />
+                    <MenuItem Header="{Binding [MenuFilterReset], Source={x:Static loc:Loc.Instance}}" IsEnabled="{Binding IsFilterActive}" Click="ResetFilter_Click" />
+                    <MenuItem Header="{Binding [MenuFilterHint], Source={x:Static loc:Loc.Instance}}" IsEnabled="False" />
+                </MenuItem>
                 <MenuItem x:Name="OpacityMenu" Header="{Binding [MenuOpacity], Source={x:Static loc:Loc.Instance}}" SubmenuOpened="OpacityMenu_SubmenuOpened">
                     <!-- Wird beim Öffnen in MainWindow.xaml.cs mit den Stufen 100 … 30 % gefüllt. -->
                     <MenuItem />
@@ -182,13 +196,16 @@
             <ItemsControl ItemsSource="{Binding Sections}" ItemTemplate="{StaticResource ProjectSectionTemplate}" />
         </ScrollViewer>
 
-        <TextBlock Grid.Row="0" Text="{Binding [Empty], Source={x:Static loc:Loc.Instance}}"
+        <TextBlock Grid.Row="0" Text="{Binding EmptyText}" TextWrapping="Wrap" TextAlignment="Center" Margin="16,0"
                    HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"
                    Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}" />
 
         <Border Grid.Row="1" BorderBrush="{StaticResource CardBorder}" BorderThickness="0,1,0,0" Padding="12,6">
             <Grid>
-                <TextBlock Text="{Binding SummaryText}" Foreground="{StaticResource TextSecondary}" />
+                <TextBlock Foreground="{StaticResource TextSecondary}" TextTrimming="CharacterEllipsis" Margin="0,0,80,0">
+                    <Run Text="{Binding SummaryText, Mode=OneWay}" /><Run Text="{Binding HiddenText, Mode=OneWay}" Foreground="{StaticResource StatusWaiting}"
+                         ToolTip="{Binding [HiddenToolTip], Source={x:Static loc:Loc.Instance}}" />
+                </TextBlock>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                     <TextBlock Text="{Binding [Total], Source={x:Static loc:Loc.Instance}}" Foreground="{StaticResource TextMuted}" />
                     <TextBlock Text="{Binding TotalCpuText}" FontWeight="SemiBold" />

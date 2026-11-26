@@ -383,5 +383,38 @@ public partial class MainWindow : Window
         return null;
     }
 
+    // ---------- Filter ----------
+
+    /// <summary>Häkchen beim Öffnen setzen: je ein Eintrag für Aktivität und Zeit ist gewählt.</summary>
+    private void FilterMenu_SubmenuOpened(object sender, RoutedEventArgs e)
+    {
+        if (!ReferenceEquals(e.OriginalSource, FilterMenu))
+            return;
+        var activity = _viewModel.ActivityFilter;
+        FilterActivityAll.IsChecked = activity == ActivityFilter.All;
+        FilterActive.IsChecked = activity == ActivityFilter.Active;
+        FilterInactive.IsChecked = activity == ActivityFilter.Inactive;
+        var time = _viewModel.TimeFilter;
+        FilterTimeAll.IsChecked = time == TimeFilter.All;
+        FilterToday.IsChecked = time == TimeFilter.Today;
+        FilterYesterday.IsChecked = time == TimeFilter.Yesterday;
+        FilterThreeDays.IsChecked = time == TimeFilter.ThreeDays;
+        FilterWeek.IsChecked = time == TimeFilter.Week;
+    }
+
+    private void ActivityFilter_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem { Tag: string tag })
+            _viewModel.ActivityFilter = SessionFilter.ParseActivity(tag);
+    }
+
+    private void TimeFilter_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem { Tag: string tag })
+            _viewModel.TimeFilter = SessionFilter.ParseTime(tag);
+    }
+
+    private void ResetFilter_Click(object sender, RoutedEventArgs e) => _viewModel.ResetFilter();
+
     private void Exit_Click(object sender, RoutedEventArgs e) => Close();
 }

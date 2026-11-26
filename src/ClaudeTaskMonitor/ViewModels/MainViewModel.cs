@@ -17,6 +17,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private string _summaryText = Loc.T("Searching");
     private string _totalCpuText = string.Empty;
     private bool _isEmpty;
+    private string _emptyText = Loc.T("Empty");
+    private string _hiddenText = string.Empty;
+    private TimeFilter _timeFilter;
+    private ActivityFilter _activityFilter;
     private string? _expandKey;
     private IReadOnlyList<SessionGroup>? _lastGroups;
 
@@ -26,6 +30,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _monitor = monitor;
         _expandKey = expandKey;
         _settings = settings;
+        _timeFilter = SessionFilter.ParseTime(settings.FilterTime);
+        _activityFilter = SessionFilter.ParseActivity(settings.FilterActivity);
         _timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromSeconds(settings.IntervalSeconds) };
         _timer.Tick += async (_, _) => await RefreshAsync();
         Loc.Instance.LanguageChanged += OnLanguageChanged;
@@ -37,6 +43,74 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public string SummaryText { get => _summaryText; private set => SetProperty(ref _summaryText, value); }
     public string TotalCpuText { get => _totalCpuText; private set => SetProperty(ref _totalCpuText, value); }
     public bool IsEmpty { get => _isEmpty; private set => SetProperty(ref _isEmpty, value); }
+
+    /// <summary>Hinweis bei leerer Liste: keine Sitzungen oder alle durch den Filter ausgeblendet.</summary>
+    public string EmptyText { get => _emptyText; private set => SetProperty(ref _emptyText, value); }
+
+    /// <summary>„ · 3 ausgeblendet“ in der Fußzeile, leer ohne ausgeblendete Sitzungen.</summary>
+    public string HiddenText
+    {
+        get => _hiddenText;
+        private set
+        {
+            if (SetProperty(ref _hiddenText, value))
+                OnPropertyChanged(nameof(HasHidden));
+        }
+    }
+
+    public bool HasHidden => HiddenText.Length > 0;
+
+    /// <summary>Zeitfilter (Untergrenze der letzten Aktivität); wird gespeichert.</summary>
+    public TimeFilter TimeFilter
+    {
+        get => _timeFilter;
+        set
+        {
+            if (_timeFilter == value)
+                return;
+            _timeFilter = value;
+            _settings.FilterTime = SessionFilter.ToSettingValue(value);
+            OnFilterChanged();
+        }
+    }
+
+    /// <summary>Aktivitätsfilter (alle, nur aktive, nur inaktive); wird gespeichert.</summary>
+    public ActivityFilter ActivityFilter
+    {
+        get => _activityFilter;
+        set
+        {
+            if (_activityFilter == value)
+                return;
+            _activityFilter = value;
+            _settings.FilterActivity = SessionFilter.ToSettingValue(value);
+            OnFilterChanged();
+        }
+    }
+
+    public bool IsFilterActive => TimeFilter != TimeFilter.All || ActivityFilter != ActivityFilter.All;
+
+    /// <summary>Setzt beide Filter auf „alle“.</summary>
+    public void ResetFilter()
+    {
+        if (!IsFilterActive)
+            return;
+        _timeFilter = TimeFilter.All;
+        _activityFilter = ActivityFilter.All;
+        _settings.FilterTime = SessionFilter.ToSettingValue(_timeFilter);
+        _settings.FilterActivity = SessionFilter.ToSettingValue(_activityFilter);
+        OnFilterChanged();
+    }
+
+    private void OnFilterChanged()
+    {
+        OnPropertyChanged(nameof(TimeFilter));
+        OnPropertyChanged(nameof(ActivityFilter));
+        OnPropertyChanged(nameof(IsFilterActive));
+        _settings.Save();
+        if (_lastGroups is not null)
+            Apply(_lastGroups);
+    }
 
     public bool Topmost
     {
@@ -162,6 +236,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         if (_lastGroups is null)
         {
             SummaryText = Loc.T("Searching");
+            EmptyText = Loc.T("Empty");
             return;
         }
 
@@ -172,9 +247,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             Apply(_lastGroups);
     }
 
-    private void Apply(IReadOnlyList<SessionGroup> groups)
+    private void Apply(IReadOnlyList<SessionGroup> allGroups)
     {
-        _lastGroups = groups;
+        _lastGroups = allGroups;
+        var now = DateTimeOffset.Now;
+        var groups = allGroups.Where(g => SessionFilter.Matches(g, TimeFilter, ActivityFilter, now)).ToList();
+        var hidden = allGroups.Count - groups.Count;
         var sections = groups
             .GroupBy(g => g.Metadata.ProjectId ?? ProjectSectionViewModel.NoProjectKey)
             .Select(s => (Key: s.Key, Title: SectionTitle(s.Key, s), Groups: (IReadOnlyList<SessionGroup>)s.ToList()))
@@ -204,6 +282,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         var processCount = groups.Sum(g => g.Processes.Count);
         var totalCpu = Math.Min(100, groups.Sum(g => g.TotalCpuPercent));
         IsEmpty = groups.Count == 0;
+        EmptyText = hidden > 0 ? Loc.T("EmptyFiltered") : Loc.T("Empty");
+        HiddenText = hidden > 0 ? Loc.F("Hidden", hidden) : string.Empty;
         TotalCpuText = Formatting.Cpu(totalCpu);
         SummaryText = groups.Count == 1
             ? Loc.F("SummaryOne", processCount)

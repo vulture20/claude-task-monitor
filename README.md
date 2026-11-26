@@ -43,13 +43,14 @@ Eine Installation ist nicht nötig: ZIP entpacken und die exe starten. Die Prüf
   - Thread-Link kopieren
   - Immer im Vordergrund an/aus
   - Aktualisieren alle 1 / 2 / 5 Sekunden (Standard: 2 s)
+  - Filter nach Aktivität und Zeitpunkt der letzten Aktivität (siehe unten)
   - Transparenz: 100 % (Standard, keine Transparenz) bis 30 % in 10er-Schritten
   - Sprache: Automatisch / Deutsch / English
   - Beenden
 - **Minimiert** tastet das Tool nicht ab und braucht keine CPU.
 - Die CPU-Last ist auf alle Kerne bezogen: 100 % heißt, alle Kerne sind voll ausgelastet.
 
-Position, Größe, „Immer im Vordergrund“, das Intervall, die Transparenz und die Sprache werden in `%APPDATA%\ClaudeTaskMonitor\settings.json` gespeichert.
+Position, Größe, „Immer im Vordergrund“, das Intervall, die Filter, die Transparenz und die Sprache werden in `%APPDATA%\ClaudeTaskMonitor\settings.json` gespeichert.
 
 ### Sprache
 
@@ -57,6 +58,15 @@ Die Oberfläche gibt es auf Deutsch und Englisch. Standardmäßig richtet sie si
 
 - **Kontextmenü → Sprache** stellt sofort um, ohne Neustart. Die Wahl wird gespeichert.
 - **`--lang de`**, **`--lang en`** oder **`--lang auto`** (auch `--lang=en`) legt die Sprache für diesen Start fest und hat Vorrang vor der gespeicherten Wahl.
+
+### Filter
+
+**Kontextmenü → Filter** blendet ganze Sitzungen bzw. Threads aus. Beide Filter wirken zusammen, z. B. „Nur inaktive“ und „Ab gestern“.
+
+- **Aktivität:** Aktive und inaktive / Nur aktive / Nur inaktive. Aktiv ist eine Sitzung, solange Claude gerade daran arbeitet. „Wartet“, „bereit“, „beendet“ und „ohne Sitzungsdatei“ gelten als inaktiv. Ein laufender Prozess allein unterscheidet nicht, denn jede angezeigte Sitzung hat mindestens einen.
+- **Letzte Aktivität:** Beliebig / heute / ab gestern / ab vor 3 Tagen / ab vor einer Woche. Die Angabe ist eine Untergrenze: „Ab gestern“ zeigt alles von gestern und heute und blendet Älteres aus. Ein Tag beginnt um Mitternacht Ortszeit. Aktive Sitzungen zählen als „jetzt“, sonst gilt die letzte Aktivität laut Desktop-App bzw. der Start der Sitzung.
+- In der Fußzeile steht, wie viele Sitzungen ausgeblendet sind, z. B. „3 ausgeblendet“. „Filter zurücksetzen“ zeigt wieder alles.
+- Die Wahl wird gespeichert (`FilterActivity`, `FilterTime` in `settings.json`).
 
 ### Transparenz
 
@@ -133,7 +143,7 @@ Ein Tag `v*` (z. B. `v1.0.0`) startet den Workflow `.github/workflows/release.ym
 |---|---|
 | `src/ClaudeTaskMonitor/Native` | Win32-/NT-Aufrufe (Prozessliste, Pfad, Kommandozeile, dunkle Titelleiste) |
 | `src/ClaudeTaskMonitor/Models` | Datentypen (Sitzungsdatei, Prozess, Sitzungsgruppe, Metadaten) |
-| `src/ClaudeTaskMonitor/Services` | `ProcessSnapshot` (Prozessliste), `SessionRegistry` (Sitzungsdateien), `ProcessScanner` (Erkennung, Baum, CPU-Last, Waisen), `SessionMetadataResolver` (Titel, Projekt, Thread), `MonitorService` (ein Durchlauf), `DemoSessionSource` (Beispieldaten für `--demo`), `AppSettings` (Einstellungen) |
+| `src/ClaudeTaskMonitor/Services` | `ProcessSnapshot` (Prozessliste), `SessionRegistry` (Sitzungsdateien), `ProcessScanner` (Erkennung, Baum, CPU-Last, Waisen), `SessionMetadataResolver` (Titel, Projekt, Thread), `MonitorService` (ein Durchlauf), `DemoSessionSource` (Beispieldaten für `--demo`), `AppSettings` (Einstellungen), `SessionFilter` (Filter nach Aktivität und Zeit) |
 | `src/ClaudeTaskMonitor/ViewModels` | MVVM ohne externe Pakete |
 | `src/ClaudeTaskMonitor/Localization` | `Loc`: alle Oberflächentexte auf Deutsch und Englisch, Sprachwahl |
 
@@ -182,13 +192,14 @@ No installation is needed: unzip and run the exe. Checksums are in `SHA256SUMS.t
   - Copy thread link
   - Always on top on/off
   - Refresh every 1 / 2 / 5 seconds (default: 2 s)
+  - Filter by activity and time of last activity (see below)
   - Transparency: 100% (default, no transparency) down to 30% in steps of 10
   - Language: Automatic / Deutsch / English
   - Exit
 - **While minimized** the tool does not scan and uses no CPU.
 - CPU load is relative to all cores: 100 % means all cores are fully busy.
 
-Position, size, "Always on top", the interval, the transparency and the language are saved in `%APPDATA%\ClaudeTaskMonitor\settings.json`.
+Position, size, "Always on top", the interval, the filters, the transparency and the language are saved in `%APPDATA%\ClaudeTaskMonitor\settings.json`.
 
 ### Language
 
@@ -196,6 +207,15 @@ The UI is available in German and English. By default it follows the Windows dis
 
 - **Context menu → Language** switches immediately, without a restart. The choice is saved.
 - **`--lang de`**, **`--lang en`** or **`--lang auto`** (also `--lang=en`) sets the language for this launch and takes precedence over the saved choice.
+
+### Filter
+
+**Context menu → Filter** hides whole sessions or threads. Both filters work together, e.g. "Inactive only" and "Since yesterday".
+
+- **Activity:** Active and inactive / Active only / Inactive only. A session is active while Claude is working on it right now. "Waiting", "ready", "ended" and "no session file" count as inactive. A running process alone does not tell them apart, because every listed session has at least one.
+- **Last activity:** Any / today / since yesterday / since 3 days ago / since a week ago. The choice is a lower bound: "Since yesterday" shows everything from yesterday and today and hides anything older. A day starts at local midnight. Active sessions count as "now"; otherwise the last activity reported by the desktop app or the session start is used.
+- The footer shows how many sessions are hidden, e.g. "3 hidden". "Reset filter" shows everything again.
+- The choice is saved (`FilterActivity`, `FilterTime` in `settings.json`).
 
 ### Transparency
 
@@ -272,7 +292,7 @@ A `v*` tag (e.g. `v1.0.0`) triggers the `.github/workflows/release.yml` workflow
 |---|---|
 | `src/ClaudeTaskMonitor/Native` | Win32/NT calls (process list, path, command line, dark title bar) |
 | `src/ClaudeTaskMonitor/Models` | Data types (session file, process, session group, metadata) |
-| `src/ClaudeTaskMonitor/Services` | `ProcessSnapshot` (process list), `SessionRegistry` (session files), `ProcessScanner` (detection, tree, CPU load, orphans), `SessionMetadataResolver` (title, project, thread), `MonitorService` (one pass), `DemoSessionSource` (sample data for `--demo`), `AppSettings` (settings) |
+| `src/ClaudeTaskMonitor/Services` | `ProcessSnapshot` (process list), `SessionRegistry` (session files), `ProcessScanner` (detection, tree, CPU load, orphans), `SessionMetadataResolver` (title, project, thread), `MonitorService` (one pass), `DemoSessionSource` (sample data for `--demo`), `AppSettings` (settings), `SessionFilter` (activity and time filters) |
 | `src/ClaudeTaskMonitor/ViewModels` | MVVM without external packages |
 | `src/ClaudeTaskMonitor/Localization` | `Loc`: all UI strings in German and English, language selection |
 
