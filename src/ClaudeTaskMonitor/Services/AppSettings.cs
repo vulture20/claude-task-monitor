@@ -30,6 +30,12 @@ public sealed class AppSettings
     /// <summary>Deckkraft des ganzen Fensters in Prozent (30–100).</summary>
     public int Opacity { get; set; } = MaxOpacity;
 
+    /// <summary>Zeitfilter: "all", "today", "yesterday", "3days" oder "week" (letzte Aktivität ab Mitternacht Ortszeit).</summary>
+    public string FilterTime { get; set; } = "all";
+
+    /// <summary>Aktivitätsfilter: "all", "active" oder "inactive".</summary>
+    public string FilterActivity { get; set; } = "all";
+
     /// <summary>false im Demo-Modus: Änderungen bleiben im Speicher, die Datei wird nicht angefasst.</summary>
     [JsonIgnore]
     public bool Persist { get; set; } = true;
@@ -50,6 +56,8 @@ public sealed class AppSettings
                     if (!AllowedIntervals.Contains(settings.IntervalSeconds))
                         settings.IntervalSeconds = DefaultInterval;
                     settings.Opacity = NormalizeOpacity(settings.Opacity);
+                    settings.FilterTime = SessionFilter.ToSettingValue(SessionFilter.ParseTime(settings.FilterTime));
+                    settings.FilterActivity = SessionFilter.ToSettingValue(SessionFilter.ParseActivity(settings.FilterActivity));
                     return settings;
                 }
             }

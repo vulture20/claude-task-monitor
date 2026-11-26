@@ -133,6 +133,17 @@ public sealed class Loc : INotifyPropertyChanged
         ["MenuOpacityOpaque"] = ("100 % (keine Transparenz)", "100% (no transparency)"),
         ["MenuOpacityFormat"] = ("{0} %", "{0}%"),
         ["MenuOpacityHint"] = ("Strg + Mausrad: Deckkraft ändern", "Ctrl + mouse wheel: change opacity"),
+        ["MenuFilter"] = ("Filter", "Filter"),
+        ["MenuFilterActivityAll"] = ("Aktive und inaktive", "Active and inactive"),
+        ["MenuFilterActive"] = ("Nur aktive", "Active only"),
+        ["MenuFilterInactive"] = ("Nur inaktive", "Inactive only"),
+        ["MenuFilterTimeAll"] = ("Beliebige letzte Aktivität", "Any last activity"),
+        ["MenuFilterToday"] = ("Letzte Aktivität heute", "Last activity today"),
+        ["MenuFilterYesterday"] = ("Ab gestern", "Since yesterday"),
+        ["MenuFilterThreeDays"] = ("Ab vor 3 Tagen", "Since 3 days ago"),
+        ["MenuFilterWeek"] = ("Ab vor einer Woche", "Since a week ago"),
+        ["MenuFilterReset"] = ("Filter zurücksetzen", "Reset filter"),
+        ["MenuFilterHint"] = ("Aktiv: Claude arbeitet oder wartet", "Active: Claude is working or waiting"),
         ["MenuExit"] = ("Beenden", "Exit"),
 
         // Fenster
@@ -145,6 +156,10 @@ public sealed class Loc : INotifyPropertyChanged
                              "Parent process has exited; assigned to this session via the tracking list or --sponsor"),
         ["Empty"] = ("Keine laufenden Claude-Sitzungen gefunden.", "No running Claude sessions found."),
         ["Total"] = ("Gesamt ", "Total "),
+        ["EmptyFiltered"] = ("Alle Sitzungen sind durch den Filter ausgeblendet.", "All sessions are hidden by the filter."),
+        ["Hidden"] = (" · {0} ausgeblendet", " · {0} hidden"),
+        ["HiddenToolTip"] = ("Filter aktiv. Rechtsklick → Filter → Filter zurücksetzen zeigt alles.",
+                             "Filter active. Right-click → Filter → Reset filter shows everything."),
         ["Searching"] = ("Suche Claude-Prozesse …", "Looking for Claude processes …"),
 
         // Zusammenfassung und Abschnitte
